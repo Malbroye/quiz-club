@@ -13,7 +13,8 @@ const socketIO = await import('socket.io').catch((error) => {
   console.warn('Mode solo uniquement. Pour activer les salons, lance npm install puis relance npm run dev.')
   return null
 })
-const io = socketIO && new socketIO.Server(server, { maxHttpBufferSize: 8192 })
+// A start action can include the host's ordered history for the whole question bank.
+const io = socketIO && new socketIO.Server(server, { maxHttpBufferSize: 32 * 1024 })
 const storage = io && process.env.QUIZ_DB ? (await import('./storage.js')).openStorage(process.env.QUIZ_DB) : null
 const rooms = new Map(storage?.load().map((record) => [record.room.code, record]) ?? [])
 app.get('/health', (_request, response) => response.json({ ok: true }))
@@ -179,4 +180,4 @@ setInterval(() => {
 }, 100).unref()
 
 const port = Number(process.env.PORT || (isDevelopment ? 3000 : 3001))
-server.listen(port, '0.0.0.0', () => console.log(`Quiz Club · http://localhost:${port}`))
+server.listen(port, '0.0.0.0', () => console.log(`La Bande de Quiz · http://localhost:${port}`))

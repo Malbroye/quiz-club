@@ -1,4 +1,4 @@
-# Mettre tes images dans Quiz Club
+# Mettre tes images dans La Bande de Quiz
 
 Les images sont classées dans `public/media/cinema/<sujet>/` ou `public/media/memes/<sujet>/`. Dépose ta photo dans le dossier du sujet, remplace le nom indiqué si nécessaire, puis recharge [localhost:3000](http://localhost:3000/).
 

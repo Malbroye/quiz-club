@@ -1,6 +1,6 @@
-# Quiz Club
+# La Bande de Quiz
 
-Quiz multijoueur en français. Crée un salon pour jouer à 2–24, ou joue contre Pixel, Mochi et Glitch. La banque de départ contient 240 questions, avec 30 questions par thème.
+Quiz multijoueur en français. Crée un salon pour jouer à 2-24, ou joue contre Pixel, Mochi et Glitch. La banque couvre huit thèmes et propose un quiz illustré.
 
 ## Jouer sans installer quoi que ce soit
 
@@ -56,9 +56,11 @@ Si Socket.IO manque et que les autres dépendances sont déjà installées, le s
 
 ## Règles
 
+- **Lecture vocale** dans l’en-tête permet d’activer la lecture automatique et de régler la voix, la vitesse et le volume sur ton appareil. Le bouton **Lire la question** permet aussi de lancer une lecture à la demande.
+
 - L’hôte choisit les thèmes, le nombre de questions, la durée et de zéro à trois exemplaires de chaque joker par joueur. Le nombre de questions proposé dépend des thèmes retenus pour éviter les doublons.
-- Les réglages indiquent le nombre de questions par thème et le total de la sélection. En rejouant dans le même salon, les questions inédites passent en priorité. Si la sélection est épuisée, les questions les moins récemment jouées reviennent en premier.
-- Une bonne réponse rapporte 600 points, jusqu’à 400 points de vitesse et 75 points par bonne réponse consécutive après la première, dans la limite de 375 points de série. Le joker de temps prolonge le délai personnel de dix secondes. Le bonus de vitesse reste calculé sur le délai de départ.
+- Les réglages indiquent le nombre de questions par thème et le total de la sélection. Le navigateur de l’hôte mémorise les questions affichées en solo et en ligne, y compris d’un salon à l’autre et en changeant de thème. Le tirage épuise les questions inédites de la sélection, puis reprend les plus anciennes.
+- Une bonne réponse rapporte 600 points et 75 points par bonne réponse consécutive après la première, dans la limite de 375 points de série. Le **bonus de rapidité** peut ajouter jusqu’à 400 points selon le temps de réponse. Il est activé par défaut et l’hôte peut le couper avant de lancer la partie. Le joker de temps prolonge le délai personnel de dix secondes. Le bonus reste calculé sur le délai de départ.
 - Le sondage utilise les réponses des autres joueurs humains dès que deux d’entre eux ont voté. Les pourcentages simulés sont signalés. Le bilan de manche compte le dernier choix de chaque participant qui a répondu, bots compris.
 - Après chaque question, l’hôte fait avancer la partie. S’il perd la connexion, un autre joueur connecté récupère la main. Le mode en ligne permet une reconnexion depuis le même onglet.
 - En solo, le résultat s’affiche dès que ta réponse est validée ou que ton chrono expire. Les bots reçoivent leurs résultats simulés immédiatement. La manche suivante attend ton clic. Le joker Double chance te laisse tenter une seconde réponse après un premier choix incorrect.
@@ -69,7 +71,7 @@ Le [guide des médias](public/media/README.md) indique les dossiers par sujet. U
 
 Pour ajouter des questions en lot, ouvre le fichier du thème dans [shared/banque](shared/banque). Ajoute les lignes à la fin du fichier pour garder les identifiants existants. Chaque ligne contient la question, la bonne réponse, puis trois distracteurs. Une source et une référence de média peuvent suivre. Le jeu mélange les choix et affiche les nouveaux compteurs au prochain chargement. Le lot [Stranger Things](shared/banque/cinema/stranger-things.js) est relié à ses images une seule fois via `subjectPacks` dans `shared/banque/index.js`. Toute nouvelle question ajoutée à ce lot hérite des images.
 
-Depuis l’accueil, clique sur **Quiz mèmes** ou **Quiz films et séries**. La première partie commence par un indice visuel, suivi d’une vidéo. En cinéma, la première question présente quatre images et la deuxième un extrait du *Mécano de la « General »*. Lors d’une revanche, le tirage privilégie les questions inédites.
+Depuis l’accueil, clique sur **Quiz illustré** pour jouer uniquement avec des images et des vidéos. L’ordre varie à chaque partie. Tu peux aussi choisir un thème comme les mèmes ou le cinéma dans **Jouer par thème**.
 
 Les quatre photos de Stranger Things proviennent de [Netflix Tudum](https://www.netflix.com/tudum/galleries/millie-bobby-brown-eleven-photos-stranger-things). Le lot du *Voyage dans la Lune* et les images Doge, Grumpy Cat et du hoverboard viennent de Wikimedia Commons. Keyboard Cat et Nyan Cat affichent la vignette de leur vidéo dans le jeu. Les extraits et bandes-annonces sont lus depuis Wikimedia ou YouTube.
 

@@ -1,6 +1,23 @@
 import { categories, illustratedCategory, questions, themeOptions } from './questions.js'
 
 export const avatars = ['👾', '🦊', '🐸', '🤖', '🐙', '🦄', '👻', '🐼', '🐱', '👽', '🦖', '🐝']
+export const nameColors = [
+  { id: 'default', label: 'Blanc', hex: '#f4f2f7' },
+  { id: 'lime', label: 'Citron', hex: '#e5f876' },
+  { id: 'mint', label: 'Menthe', hex: '#9cf0c5' },
+  { id: 'sky', label: 'Bleu ciel', hex: '#9ad9ff' },
+  { id: 'lilac', label: 'Lilas', hex: '#d3baff' },
+  { id: 'pink', label: 'Rose', hex: '#ffb1d5' },
+  { id: 'peach', label: 'Pêche', hex: '#ffc292' },
+]
+export const maxAvatarPhotoLength = 4096
+
+export function isAvatarPhoto(photo) {
+  if (typeof photo !== 'string' || photo.length > maxAvatarPhotoLength) return false
+  const encoded = /^data:image\/jpeg;base64,(\/9j\/[A-Za-z0-9+/]+={0,2})$/.exec(photo)?.[1]
+  return Boolean(encoded && encoded.length % 4 === 0 && atob(encoded).endsWith('\xff\xd9'))
+}
+
 export const jokers = [
   { id: 'half', name: '50/50', description: 'Retire deux mauvaises réponses.' },
   { id: 'poll', name: 'Sondage', description: 'Consulte les votes des autres joueurs, ou une estimation.' },
@@ -9,16 +26,32 @@ export const jokers = [
 ]
 export const counts = [5, 10, 15, 20, 30]
 export const durations = [10, 15, 20, 30]
+export const maxSpeedBonus = 400
 export const defaultSettings = {
   themes: [],
   total: 5,
   duration: 15,
+  speedBonus: true,
   jokers: Object.fromEntries(jokers.map(({ id }) => [id, 1])),
 }
 
 const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const botNames = ['Pixel', 'Mochi', 'Glitch']
 const botSkill = [0.74, 0.55, 0.4]
+const questionIds = new Set(questions.map(({ id }) => id))
+
+export function mergeQuestionHistory(history, recent) {
+  const ordered = new Set()
+  for (const list of [history, recent]) {
+    if (!Array.isArray(list)) continue
+    for (const id of list) {
+      if (!questionIds.has(id)) continue
+      ordered.delete(id)
+      ordered.add(id)
+    }
+  }
+  return [...ordered]
+}
 
 export function makeCode() {
   return Array.from(crypto.getRandomValues(new Uint8Array(6)), (value) => letters[value % letters.length]).join('')
@@ -53,6 +86,7 @@ function settingsFrom(input) {
     themes,
     total: counts.filter((count) => count <= max && count <= requested).at(-1) ?? 5,
     duration: durations.includes(input?.duration) ? input.duration : defaultSettings.duration,
+    speedBonus: typeof input?.speedBonus === 'boolean' ? input.speedBonus : defaultSettings.speedBonus,
     jokers: Object.fromEntries(jokers.map(({ id }) => {
       const value = input?.jokers?.[id]
       return [id, Number.isInteger(value) && value >= 0 && value <= 3 ? value : defaultSettings.jokers[id]]
@@ -74,7 +108,12 @@ export function addPlayer(room, profile, id = Array.from(crypto.getRandomValues(
   if ([...room.players.values()].some((player) => player.name.toLowerCase() === name.toLowerCase())) {
     throw new Error('Ce pseudo est déjà pris dans le salon.')
   }
-  const player = { id, name, avatar: avatars.includes(profile.avatar) ? profile.avatar : avatars[0], connected: true, bot }
+  const player = {
+    id, name, connected: true, bot,
+    avatar: avatars.includes(profile.avatar) ? profile.avatar : avatars[0],
+    photo: isAvatarPhoto(profile.photo) ? profile.photo : undefined,
+    nameColor: nameColors.find(({ id }) => id === profile.nameColor)?.id,
+  }
   resetPlayer(player, room.settings)
   room.players.set(id, player)
   room.hostId ??= id
@@ -111,9 +150,10 @@ export function removePlayer(room, id) {
 }
 
 function rank(room) {
+  const useSpeed = room.settings.speedBonus !== false
   return [...room.players.values()].sort((a, b) =>
     b.score - a.score || b.correctCount - a.correctCount ||
-    (a.bestTime ?? Infinity) - (b.bestTime ?? Infinity) || a.name.localeCompare(b.name, 'fr'),
+    (useSpeed ? (a.bestTime ?? Infinity) - (b.bestTime ?? Infinity) : 0) || a.name.localeCompare(b.name, 'fr'),
   )
 }
 
@@ -131,11 +171,14 @@ function makeDeck(settings, history) {
       if (index >= 0) return group.splice(index, 1)[0]
     }
   }
-  const firstImage = takeMedia('image', groups)
-  const videoGroups = groups.filter((group) => group[0]?.category !== firstImage?.category)
-  const firstVideo = takeMedia('video', videoGroups) ?? takeMedia('video', groups)
-  const firstAudio = (!firstVideo || settings.total >= 10) && takeMedia('audio', groups)
-  const ordered = [firstImage, firstVideo, firstAudio].filter(Boolean)
+  const ordered = []
+  if (!settings.themes.includes(illustratedCategory.id)) {
+    const firstImage = takeMedia('image', groups)
+    const videoGroups = groups.filter((group) => group[0]?.category !== firstImage?.category)
+    const firstVideo = takeMedia('video', videoGroups) ?? takeMedia('video', groups)
+    const firstAudio = (!firstVideo || settings.total >= 10) && takeMedia('audio', groups)
+    ordered.push(...[firstImage, firstVideo, firstAudio].filter(Boolean))
+  }
   while (ordered.length < freshLimit) {
     for (const group of shuffle(groups.filter((group) => group.length))) ordered.push(group.pop())
   }
@@ -155,6 +198,7 @@ function makeDeck(settings, history) {
 function openRound(room, now) {
   room.index += 1
   const question = room.deck[room.index]
+  room.questionHistory = mergeQuestionHistory(room.questionHistory, [question.id])
   const duration = room.settings.duration * 1000
   const entries = new Map()
   for (const player of room.players.values()) {
@@ -222,12 +266,13 @@ function finishRound(room) {
       continue
     }
     const elapsed = Math.max(0, entry.answeredAt - openedAt)
-    const speed = Math.max(0, 1 - elapsed / (room.settings.duration * 1000))
+    const speed = room.settings.speedBonus === false ? 0 : Math.max(0, 1 - elapsed / (room.settings.duration * 1000))
     player.streak += 1
     player.correctCount += 1
     player.bestStreak = Math.max(player.bestStreak, player.streak)
     player.bestTime = Math.min(player.bestTime ?? Infinity, elapsed)
-    entry.points = 600 + Math.round(speed * 400) + Math.min(5, player.streak - 1) * 75
+    entry.speedPoints = Math.round(speed * maxSpeedBonus)
+    entry.points = 600 + entry.speedPoints + Math.min(5, player.streak - 1) * 75
     player.score += entry.points
   }
   room.ranking = rank(room)
@@ -285,10 +330,8 @@ export function act(room, id, action, now = Date.now()) {
       if (!candidate.connected) room.players.delete(candidate.id)
       else resetPlayer(candidate, room.settings)
     }
-    const history = room.questionHistory ?? []
+    const history = mergeQuestionHistory(action.history, room.questionHistory)
     room.deck = makeDeck(room.settings, history)
-    const picked = new Set(room.deck.map(({ id }) => id))
-    room.questionHistory = [...history.filter((id) => !picked.has(id)), ...picked]
     room.ranking = []
     room.index = -1
     openRound(room, now)
@@ -341,7 +384,7 @@ export function view(room, id, now = Date.now()) {
   const entry = round?.entries.get(id)
   const self = room.players.get(id)
   const revealed = phase === 'reveal' || phase === 'final'
-  const publicPlayer = ({ id, name, avatar, connected, bot }) => ({ id, name, avatar, connected, bot })
+  const publicPlayer = ({ id, name, avatar, photo, nameColor, connected, bot }) => ({ id, name, avatar, photo, nameColor, connected, bot })
   return {
     code: room.code, phase, local: room.local, hostId: room.hostId, selfId: id,
     now, settings: room.settings, index: room.index, questionCounts,
@@ -361,6 +404,7 @@ export function view(room, id, now = Date.now()) {
       start: round.openedAt, deadline: entry.deadline, choices: entry.choices, locked: entry.locked,
       used: entry.used, eliminated: entry.eliminated, poll: entry.used.poll ? pollFor(room, id) : null,
       points: revealed ? entry.points : null,
+      speedPoints: revealed ? entry.speedPoints ?? 0 : null,
     },
     result: revealed ? { answer: round.question.answer, percentages: distribution(tally(room).votes), voters: tally(room).voters } : null,
     ranking: room.ranking.map((player, index) => {
