@@ -3,12 +3,14 @@ import { createRoot } from 'react-dom/client'
 import {
   ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, BarChart3, Brain, Check,
   ChevronRight, CircleHelp, Clock3, Copy, Crown, Film, Flame, Gamepad2, Globe2, PawPrint,
-  Image, Maximize2, Play, Plus, Shuffle, Smile, Sparkles, Square, Swords, TimerReset, Trophy, Twitch, Users, Volume2, X, Youtube, Zap,
+  HeartHandshake, Image, Maximize2, Play, Plus, Shuffle, Smile, Sparkles, Square, Swords, TimerReset, Trophy, Twitch, Users, Volume2, X, Youtube, Zap,
 } from 'lucide-react'
 import '@fontsource-variable/geist'
-import { act, avatars, counts, createRoom, defaultSettings, durations, jokers, maxSpeedBonus, mergeQuestionHistory, questionCounts, tick, view } from '../shared/game.js'
+import { act, avatars, counts, createRoom, defaultSettings, durations, jokerFitsQuestion, jokers, maxSpeedBonus, mergeQuestionHistory, questionCounts, tick, view } from '../shared/game.js'
 import { categories, illustratedCategory, themeOptions } from '../shared/questions.js'
+import { getPersonalityTest } from '../shared/personality.js'
 import { PlayerAvatar, PlayerName, ProfileAppearance } from './profile.jsx'
+import { PersonalityIntro, PersonalityResults, PersonalityRound, PersonalitySetup } from './personality.jsx'
 import { SpeechSettings, useQuestionSpeech } from './speech.jsx'
 import { heroLines, illustratedCovers, pickHomeItem } from './home-content.js'
 import './styles.css'
@@ -152,7 +154,7 @@ function useGame() {
     }
   }, [])
 
-  async function enter(mode, profile, { code, theme, speedBonus = defaultSettings.speedBonus } = {}) {
+  async function enter(mode, profile, { code, theme, personalityTest, speedBonus = defaultSettings.speedBonus } = {}) {
     setError('')
     setBusy(true)
     try {
@@ -161,10 +163,11 @@ function useGame() {
         store('qc-session', null)
         socket.current?.disconnect()
         setReconnecting(false)
-        local.current = createRoom(profile, { local: true })
+        local.current = createRoom(profile, { local: true, personalityTest })
         const { room, player } = local.current
         if (theme) act(room, player.id, { type: 'settings', settings: { themes: [theme], speedBonus } })
-        if (theme === illustratedCategory.id) act(room, player.id, { type: 'start', history: readHistory() })
+        if (personalityTest) act(room, player.id, { type: 'start' })
+        else if (theme === illustratedCategory.id) act(room, player.id, { type: 'start', history: readHistory() })
         receive(view(room, player.id))
       } else {
         session.current = null
@@ -172,7 +175,7 @@ function useGame() {
         entering.current = true
         ignoreState.current = false
         const client = (await connect()).connect()
-        const response = await request(client, 'enter', { mode, code, profile })
+        const response = await request(client, 'enter', { mode, code, profile, personalityTest })
         session.current = { code: response.state.code, token: response.token }
         store('qc-session', session.current)
         receive(response.state)
@@ -191,7 +194,7 @@ function useGame() {
 
   async function action(input) {
     setError('')
-    const command = input.type === 'start' ? { ...input, history: readHistory() } : input
+    const command = input.type === 'start' && !state?.personality ? { ...input, history: readHistory() } : input
     try {
       if (local.current) {
         act(local.current.room, local.current.player.id, command)
@@ -292,7 +295,7 @@ function useHomeRotation(items, key) {
   return selection.item
 }
 
-function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, openSolo, code, setCode }) {
+function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, openSolo, openPersonality, code, setCode }) {
   const headline = useHomeRotation(heroLines, 'qc-hero')
   const cover = useHomeRotation(illustratedCovers, 'qc-illustrated-cover')
   const [stickersPaused, setStickersPaused] = useState(() => stored('qc-stickers-paused', false, 'localStorage'))
@@ -311,6 +314,9 @@ function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, 
           <img src={localMediaPaths(cover)[0]} alt="" />
           <span className="illustrated-copy"><span className="illustrated-label"><Image size={15} /> Images et vidéos</span><strong>Quiz illustré</strong></span>
           <span className="illustrated-arrow"><ArrowRight size={20} /></span>
+        </button>
+        <button className="personality-entry" type="button" onClick={openPersonality} disabled={game.busy}>
+          <HeartHandshake size={23} /><span><strong>Tests de personnalité</strong><small>En couple ou entre potes, quel rôle tu joues ?</small></span><ArrowRight size={18} />
         </button>
       </div>
       <div className="hero-side">
@@ -392,6 +398,7 @@ async function copyText(text) {
 
 function Lobby({ state, action, error }) {
   const host = state.selfId === state.hostId
+  const canStart = state.players.length >= 2 || (state.local && Boolean(state.personality))
   const [copied, setCopied] = useState('')
   async function copy(kind) {
     const url = new URL(location.href)
@@ -402,21 +409,21 @@ function Lobby({ state, action, error }) {
     <div className="game-heading"><h1 className="display">{state.local ? 'Partie solo' : 'Salon d’attente'}</h1></div>
     <div className="lobby-grid">
       <section className="panel lobby-players">
-        {state.local ? <div className="lobby-code local-code"><Gamepad2 size={32}/><div><strong className="display">Solo contre les bots</strong><p>Pixel, Mochi et Glitch jouent avec toi.</p></div></div> :
+        {state.local ? <div className="lobby-code local-code"><Gamepad2 size={32}/><div><strong className="display">{state.personality ? 'Questionnaire en solo' : 'Solo contre les bots'}</strong>{!state.personality && <p>Pixel, Mochi et Glitch jouent avec toi.</p>}</div></div> :
           <div className="lobby-code"><div className="field-label">Code du salon</div><strong className="display">{state.code}</strong><div className="flex flex-wrap gap-2"><button className="button small secondary" onClick={() => copy('code')}>{copied === 'code' ? <Check size={15} /> : <Copy size={15} />}{copied === 'code' ? 'Code copié' : 'Copier le code'}</button><button className="button small secondary" onClick={() => copy('link')}>{copied === 'link' ? <Check size={15} /> : <Copy size={15} />}{copied === 'link' ? 'Lien copié' : 'Copier le lien'}</button></div>{copied === 'failed' && <p className="field-note" role="status">Sélectionne le code pour le copier.</p>}</div>}
         <div className="player-heading"><h2 className="display">Joueurs</h2><span><Users size={16} /> {state.players.length}{!state.local && ' / 24'}</span></div>
         <ul className="player-list">{state.players.map((player) => <li key={player.id}><PlayerAvatar player={player} /><strong><PlayerName player={player} />{player.id === state.selfId && <small> (toi)</small>}</strong>{player.id === state.hostId && <span className="host-tag"><Crown size={14} /> Hôte</span>}{player.bot && <span className="host-tag bot-tag">Bot</span>}</li>)}</ul>
         <ErrorText>{error}</ErrorText>
-        {host ? <><button className="button primary w-full justify-center mt-5" disabled={state.players.length < 2} onClick={() => action({ type: 'start' })}><Play size={19} fill="currentColor" /> Lancer la partie</button>{state.players.length < 2 && <p className="field-note text-center">Il faut au moins 2 joueurs pour démarrer.</p>}</> : <p className="wait-note"><span /> L’hôte lance la partie.</p>}
+        {host ? <><button className="button primary w-full justify-center mt-5" disabled={!canStart} onClick={() => action({ type: 'start' })}><Play size={19} fill="currentColor" /> {state.personality ? 'Lancer le questionnaire' : 'Lancer la partie'}</button>{!canStart && <p className="field-note text-center">Il faut au moins 2 joueurs pour démarrer.</p>}</> : <p className="wait-note"><span /> L’hôte lance la partie.</p>}
       </section>
-      <Settings state={state} action={action} host={host} />
+      {state.personality ? <PersonalityIntro testId={state.personality.testId} /> : <Settings state={state} action={action} host={host} />}
     </div>
   </main>
 }
 
 function VoteBars({ percentages, choices, correct }) {
   return <div className={'vote-bars' + (choices ? ' vote-details' : '')}>
-    {percentages.map((percent, index) => <div key={letters[index]} data-correct={index === correct}><span>{letters[index]}{choices && ' · ' + choices[index]}</span><span className="vote-track"><i style={{ width: percent + '%' }} /></span><strong>{percent} %</strong></div>)}
+    {percentages.map((percent, index) => <div key={index} data-correct={index === correct}><span>{choices?.length === 2 ? choices[index] : letters[index] + (choices ? ' · ' + choices[index] : '')}</span><span className="vote-track"><i style={{ width: percent + '%' }} /></span><strong>{percent} %</strong></div>)}
   </div>
 }
 
@@ -525,6 +532,7 @@ function useClock(personal, clockOffset) {
 
 function Question({ state, action, clockOffset, error, reconnecting, speech }) {
   const { question, personal, settings } = state
+  const isBinary = question.choices.length === 2
   const heading = useRef(null)
   const category = categories.find(({ id }) => id === question.category)
   const { seconds, ratio } = useClock(personal, clockOffset)
@@ -532,7 +540,7 @@ function Question({ state, action, clockOffset, error, reconnecting, speech }) {
   const play = (input) => action({ ...input, round: state.index })
   useEffect(() => { heading.current.focus({ preventScroll: true }) }, [state.index])
   return <main className="page-width game-page question-page">
-    <div className="question-top"><span className="eyebrow">Question {state.index + 1} sur {settings.total}</span><span className="category-tag"><CategoryIcon category={category} size={17} /> {category.name}</span></div>
+    <div className="question-top"><span className="eyebrow">Question {state.index + 1} sur {settings.total}</span><span className="category-tag"><CategoryIcon category={category} size={17} /> {category.name}{isBinary && ' · Vrai/Faux'}</span></div>
     <div className="progress-strip" aria-hidden="true">{Array.from({ length: settings.total }, (_, index) => <i className={index <= state.index ? 'done' : ''} key={index} />)}</div>
     <section className="question-panel">
       <div className="question-heading">
@@ -547,8 +555,10 @@ function Question({ state, action, clockOffset, error, reconnecting, speech }) {
     <div className="round-layout" data-visual={Boolean(question.media && question.media.type !== 'audio')}>
       {question.media && <div className="round-media"><QuestionMedia key={question.id} media={question.media} /></div>}
       <div className="round-controls">
-        <div className="answer-grid">
-          {question.choices.map((choice, index) => <button className="answer" key={index} disabled={locked || reconnecting || personal.eliminated.includes(index) || personal.choices.includes(index)} data-selected={personal.choices.includes(index)} data-eliminated={personal.eliminated.includes(index)} onClick={() => play({ type: 'answer', choice: index })}><span>{letters[index]}</span><strong>{choice}</strong>{personal.choices.includes(index) && <Check size={20} />}</button>)}
+        <div className={isBinary ? 'answer-grid binary-answers' : 'answer-grid'}>
+          {question.choices.map((choice, index) => <button className="answer" key={index} disabled={locked || reconnecting || personal.eliminated.includes(index) || personal.choices.includes(index)} data-selected={personal.choices.includes(index)} data-eliminated={personal.eliminated.includes(index)} onClick={() => play({ type: 'answer', choice: index })}>
+            <span aria-hidden={isBinary || undefined}>{isBinary ? (index === 0 ? <Check size={19} /> : <X size={19} />) : letters[index]}</span><strong>{choice}</strong>{personal.choices.includes(index) && <Check size={20} aria-hidden="true" />}
+          </button>)}
         </div>
         <div className="question-status" role="status">{locked ? (personal.choices.length ? 'Réponse enregistrée.' : 'Temps écoulé.') : personal.used.double ? (personal.choices.length ? 'Tu peux tenter une deuxième réponse.' : 'Double chance activée.') : 'Choisis une réponse.'} <span>{state.answered} / {state.players.length} ont répondu</span></div>
       </div>
@@ -557,9 +567,11 @@ function Question({ state, action, clockOffset, error, reconnecting, speech }) {
       <h2 className="display">Tes jokers</h2>
       <div className="joker-buttons">{jokers.filter(({ id }) => settings.jokers[id]).map(({ id, name, description }) => {
         const Icon = jokerIcons[id]
-        return <button className="button secondary" key={id} disabled={locked || reconnecting || !state.stock[id] || personal.used[id]} title={description} onClick={() => play({ type: 'joker', joker: id })}><Icon size={18} /> {name} <small>×{state.stock[id]}</small></button>
+        const available = jokerFitsQuestion(id, question.choices.length)
+        return <button className="button secondary" key={id} disabled={!available || locked || reconnecting || !state.stock[id] || personal.used[id]} title={available ? description : 'Indisponible sur les Vrai/Faux'} onClick={() => play({ type: 'joker', joker: id })}><Icon size={18} /> {name} <small>×{state.stock[id]}</small></button>
       })}</div>
-      {personal.poll && <div className="poll-panel"><h3 className="field-label">{personal.poll.simulated ? 'Sondage simulé' : 'Votes des autres joueurs'}</h3><VoteBars percentages={personal.poll.percentages} /></div>}
+      {isBinary && (settings.jokers.half > 0 || settings.jokers.double > 0) && <p className="field-note">Le 50/50 et la Double chance sont réservés aux QCM.</p>}
+      {personal.poll && <div className="poll-panel"><h3 className="field-label">{personal.poll.simulated ? 'Sondage simulé' : 'Votes des autres joueurs'}</h3><VoteBars percentages={personal.poll.percentages} choices={isBinary ? question.choices : undefined} /></div>}
     </section>}
     <ErrorText>{error}</ErrorText>
   </main>
@@ -583,6 +595,7 @@ function Reveal({ state, action, error }) {
       <section className="panel result-panel">
         <div className="section-head"><div><div className="field-label">Bonne réponse</div><h2 className="display">{question.choices[result.answer]}</h2></div><span className="good-icon"><Check size={26} /></span></div>
         <p className="result-question">{question.prompt}</p>
+        {question.explanation && <p className="answer-explanation">{question.explanation}</p>}
         <p className={personal.points ? 'earned correct' : 'earned'}>
           {personal.points ? '+' + score.format(personal.points) + ' points pour toi' : '0 point sur cette question'}
           {personal.speedPoints > 0 && <span>dont +{score.format(personal.speedPoints)} de rapidité</span>}
@@ -630,15 +643,20 @@ function App() {
   const [modal, setModal] = useState('')
   const [soloTheme, setSoloTheme] = useState(null)
   const [illustratedSpeedBonus, setIllustratedSpeedBonus] = useState(defaultSettings.speedBonus)
+  const [personalityTest, setPersonalityTest] = useState('couple')
+  const [personalityMode, setPersonalityMode] = useState('create')
   const activeQuestion = state?.phase === 'question' ? state.question : null
+  const activeTest = state?.phase === 'personality' ? state.personality : null
+  const testPrompt = activeTest && getPersonalityTest(activeTest.testId).questions[activeTest.step]?.[0]
   const speech = useQuestionSpeech(
-    activeQuestion?.prompt,
-    activeQuestion ? `${state.code}/${state.index}/${state.personal.start}/${activeQuestion.id}` : null,
+    activeQuestion?.prompt ?? testPrompt,
+    activeQuestion ? `${state.code}/${state.index}/${state.personal.start}/${activeQuestion.id}` : activeTest && `${state.code}/${activeTest.run}/${activeTest.step}`,
     () => stored(speechKey, null, 'localStorage'),
     (preferences) => store(speechKey, preferences, 'localStorage'),
   )
   const selectedTheme = themeOptions.find(({ id }) => id === soloTheme)
   const isIllustrated = selectedTheme === illustratedCategory
+  const isPersonalitySetup = modal === 'personality'
   const self = state?.players.find(({ id }) => id === state.selfId)
   useEffect(() => { window.scrollTo(0, 0) }, [state?.phase, state?.index])
   const openSolo = (theme = null) => {
@@ -652,6 +670,12 @@ function App() {
     setModal('')
   }
   const leave = () => { game.leave(); setCode(''); setModal('') }
+  async function enterFromModal(event) {
+    event.preventDefault()
+    const mode = isPersonalitySetup ? personalityMode : modal === 'solo' ? 'local' : 'create'
+    const options = isPersonalitySetup ? { personalityTest } : { theme: soloTheme, speedBonus: isIllustrated ? illustratedSpeedBonus : defaultSettings.speedBonus }
+    if (await game.enter(mode, profile, options)) setModal('')
+  }
   return <>
     <header className="site-header"><div className="page-width header-inner">
       <button className="home-link" aria-label="La Bande de Quiz, accueil" onClick={() => state && setModal('leave')}><Logo /></button>
@@ -662,19 +686,22 @@ function App() {
       </div>
     </div></header>
     {game.reconnecting && <div className="connection-banner" role="status">Connexion interrompue. Reconnexion au salon…</div>}
-    {!state && <Home game={game} {...{ profile, setProfile, photoBusy, setPhotoBusy, code, setCode, openSolo }} openCreate={() => { game.clearError(); setModal('create') }} />}
+    {!state && <Home game={game} {...{ profile, setProfile, photoBusy, setPhotoBusy, code, setCode, openSolo }} openCreate={() => { game.clearError(); setModal('create') }} openPersonality={() => { game.clearError(); setModal('personality') }} />}
     {state?.phase === 'lobby' && <Lobby state={state} action={game.action} error={game.error} />}
     {state?.phase === 'question' && <Question state={state} action={game.action} clockOffset={game.clockOffset} error={game.error} reconnecting={game.reconnecting} speech={speech} />}
     {state?.phase === 'reveal' && <Reveal state={state} action={game.action} error={game.error} />}
     {state?.phase === 'final' && <Final state={state} action={game.action} leave={leave} error={game.error} />}
+    {state?.phase === 'personality' && <PersonalityRound state={state} action={game.action} reconnecting={game.reconnecting} speech={speech} error={game.error} />}
+    {state?.phase === 'personality-final' && <PersonalityResults state={state} action={game.action} leave={leave} error={game.error} />}
     <footer className="site-footer page-width"><Logo /><p>Créé par <a href="https://www.malbroye.fr" target="_blank" rel="noopener noreferrer">Malbroye Studio</a></p></footer>
-    {(modal === 'create' || modal === 'solo') && <Modal close={close} title={modal === 'solo' ? 'Ton profil solo' : 'Créer un salon'}><form className="modal-form" onSubmit={async (event) => { event.preventDefault(); if (await game.enter(modal === 'solo' ? 'local' : 'create', profile, { theme: soloTheme, speedBonus: isIllustrated ? illustratedSpeedBonus : defaultSettings.speedBonus })) setModal('') }}>
+    {['create', 'solo', 'personality'].includes(modal) && <Modal close={close} title={isPersonalitySetup ? 'Tests de personnalité' : modal === 'solo' ? 'Ton profil solo' : 'Créer un salon'}><form className="modal-form" onSubmit={enterFromModal}>
+      {isPersonalitySetup && <PersonalitySetup testId={personalityTest} setTestId={setPersonalityTest} mode={personalityMode} setMode={setPersonalityMode} />}
       {modal === 'create' && <p>Tu pourras partager le code du salon avec tes amis.</p>}
       {modal === 'solo' && selectedTheme && <p>{isIllustrated ? 'Quiz illustré · Images et vidéos' : selectedTheme.name}</p>}
       <label className="field-label">Ton pseudo<input autoFocus autoComplete="nickname" placeholder="Ex. Pixel42" required maxLength={20} value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} /></label>
       <ProfileAppearance {...{ profile, setProfile, photoBusy, setPhotoBusy }} />
       {modal === 'solo' && isIllustrated && <SpeedBonusSetting enabled={illustratedSpeedBonus} onChange={setIllustratedSpeedBonus} />}
-      <ErrorText>{game.error}</ErrorText><button className="button primary w-full justify-center" disabled={game.busy || photoBusy}>{modal === 'solo' ? <Gamepad2 size={19} /> : <Globe2 size={19} />} {modal === 'solo' ? (isIllustrated ? 'Lancer le quiz' : 'Continuer') : (game.busy ? 'Connexion…' : 'Créer le salon')} <ArrowRight size={18} /></button>
+      <ErrorText>{game.error}</ErrorText><button className="button primary w-full justify-center" disabled={game.busy || photoBusy}>{modal === 'solo' ? <Gamepad2 size={19} /> : <Globe2 size={19} />} {game.busy ? 'Connexion…' : isPersonalitySetup && personalityMode === 'local' ? 'Lancer le test' : modal === 'solo' ? (isIllustrated ? 'Lancer le quiz' : 'Continuer') : 'Créer le salon'} <ArrowRight size={18} /></button>
     </form></Modal>}
     {modal === 'speech' && <Modal close={close} title="Lecture vocale"><SpeechSettings speech={speech} /></Modal>}
     {modal === 'rules' && <Modal close={close} title="Comment jouer"><ol className="rules-list"><li><Users size={22} /><div><strong>Forme ton salon</strong><p>Partage le code avec tes amis ou lance une partie solo avec trois bots.</p></div></li><li><Zap size={22} /><div><strong>Marque des points</strong><p>Enchaîne les bonnes réponses pour gagner un bonus de série. Si l’hôte active le bonus de rapidité, les bonnes réponses les plus rapides rapportent davantage.</p></div></li><li><Sparkles size={22} /><div><strong>Utilise tes jokers</strong><p>Retire des choix, consulte le sondage, tente une deuxième réponse ou prends dix secondes de plus.</p></div></li></ol><button className="button outlined w-full justify-center" onClick={close}>Compris <Check size={18}/></button></Modal>}

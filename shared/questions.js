@@ -1,6 +1,7 @@
 import { existingMedia, mediaLibrary, webQuestions } from './web-questions.js'
 import { customMedia, customMediaLibrary, customQuestions } from './mes-questions.js'
 import questionPacks, { expansionPacks, subjectPacks, supplementPacks } from './banque/index.js'
+import { trueFalseQuestions } from './banque/vrai-faux.js'
 import { expansionImages, subjectVideos } from './banque/extension/images.js'
 import { mediaQuestions, questionVideos } from './banque/media-questions.js'
 
@@ -145,7 +146,7 @@ function resolveMedia(value) {
   return { ...entry.items[index % entry.items.length], type: 'image', stage: entry.stage }
 }
 
-export const questions = [...builtInQuestions, ...packQuestions, ...mediaQuestions, ...customQuestions, ...extraQuestions].map((question) => {
+export const questions = [...builtInQuestions, ...packQuestions, ...mediaQuestions, ...customQuestions, ...extraQuestions, ...trueFalseQuestions].map((question) => {
   const media = customMedia[question.id] ?? question.media
   const subject = typeof media === 'string' ? media : media?.ref
   return {

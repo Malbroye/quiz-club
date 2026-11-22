@@ -113,7 +113,7 @@ io?.on('connection', (socket) => {
       if (rooms.size >= 500) throw new Error('Le serveur est plein. Réessaie dans quelques minutes.')
       let code
       do { code = makeCode() } while (rooms.has(code))
-      const created = createRoom(payload.profile, { code, now })
+      const created = createRoom(payload.profile, { code, now, personalityTest: payload.personalityTest })
       player = created.player
       record = { room: created.room, tokens: new Map(), sockets: new Map(), away: new Map() }
       rooms.set(code, record)

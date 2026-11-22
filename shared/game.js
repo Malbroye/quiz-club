@@ -1,4 +1,5 @@
 import { categories, illustratedCategory, questions, themeOptions } from './questions.js'
+import { actPersonality, getPersonalityTest, personalityView } from './personality.js'
 
 export const avatars = ['👾', '🦊', '🐸', '🤖', '🐙', '🦄', '👻', '🐼', '🐱', '👽', '🦖', '🐝']
 export const nameColors = [
@@ -38,6 +39,10 @@ export const defaultSettings = {
   duration: 15,
   speedBonus: true,
   jokers: Object.fromEntries(jokers.map(({ id }) => [id, 1])),
+}
+
+export function jokerFitsQuestion(joker, choiceCount) {
+  return choiceCount !== 2 || (joker !== 'half' && joker !== 'double')
 }
 
 const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -127,13 +132,15 @@ export function addPlayer(room, profile, id = Array.from(crypto.getRandomValues(
   return player
 }
 
-export function createRoom(profile, { local = false, code = makeCode(), now = Date.now() } = {}) {
+export function createRoom(profile, { local = false, code = makeCode(), now = Date.now(), personalityTest } = {}) {
+  if (personalityTest !== undefined && !getPersonalityTest(personalityTest)) throw new Error('Ce questionnaire est indisponible.')
   const room = {
     code, local, players: new Map(), hostId: null, phase: 'lobby', settings: settingsFrom(defaultSettings),
     deck: [], questionHistory: [], round: null, index: -1, ranking: [], touched: now,
   }
+  if (personalityTest) room.personality = { testId: personalityTest, answers: {}, run: 0 }
   const player = addPlayer(room, profile)
-  if (local) {
+  if (local && !room.personality) {
     botNames.forEach((name, index) => addPlayer(room, {
       name: player.name.toLowerCase() === name.toLowerCase() ? name + ' Bot' : name,
       avatar: avatars[index + 1],
@@ -170,13 +177,15 @@ function makeDeck(settings, history) {
   const fresh = pool.filter(({ id }) => !seen.has(id))
   const freshLimit = Math.min(settings.total, fresh.length)
   const groups = shuffle(categories.map(({ id }) => shuffle(fresh.filter((question) => question.category === id))))
-  const takeMedia = (type, preferredGroups) => {
+  const takeQuestion = (preferredGroups, match, prefer = match) => {
     for (const group of preferredGroups) {
-      const eligible = ({ media }) => media?.type === type && media.stage === 'question'
-      const preferred = group.findIndex((question) => eligible(question) && (type === 'image' ? question.media.items : question.media.url))
-      const index = preferred < 0 ? group.findIndex(eligible) : preferred
+      const preferred = group.findIndex((question) => match(question) && prefer(question))
+      const index = preferred < 0 ? group.findIndex(match) : preferred
       if (index >= 0) return group.splice(index, 1)[0]
     }
+  }
+  const takeMedia = (type, preferredGroups) => {
+    return takeQuestion(preferredGroups, ({ media }) => media?.type === type && media.stage === 'question', ({ media }) => type === 'image' ? media.items : media.url)
   }
   const ordered = []
   if (!settings.themes.includes(illustratedCategory.id)) {
@@ -186,6 +195,10 @@ function makeDeck(settings, history) {
     const firstAudio = (!firstVideo || settings.total >= 10) && takeMedia('audio', groups)
     ordered.push(...[firstImage, firstVideo, firstAudio].filter(Boolean))
   }
+  const mediaCount = ordered.length
+  const isBinary = ({ choices }) => choices.length === 2
+  const binary = mediaCount < freshLimit && !ordered.some(isBinary) && takeQuestion(groups, isBinary)
+  if (binary) ordered.push(binary)
   while (ordered.length < freshLimit) {
     for (const group of shuffle(groups.filter((group) => group.length))) ordered.push(group.pop())
   }
@@ -196,8 +209,14 @@ function makeDeck(settings, history) {
       if (ordered.length === settings.total) break
     }
   }
-  return ordered.slice(0, settings.total).map((question) => {
-    const indexes = shuffle([0, 1, 2, 3])
+  const deck = ordered.slice(0, settings.total)
+  if (binary) {
+    const position = mediaCount + Math.floor(Math.random() * (freshLimit - mediaCount))
+    ;[deck[mediaCount], deck[position]] = [deck[position], deck[mediaCount]]
+  }
+  return deck.map((question) => {
+    if (isBinary(question)) return { ...question }
+    const indexes = shuffle(question.choices.map((_, index) => index))
     return { ...question, choices: indexes.map((index) => question.choices[index]), answer: indexes.indexOf(question.answer) }
   })
 }
@@ -213,13 +232,13 @@ function openRound(room, now) {
     if (player.bot) {
       const skill = botSkill[Number(player.id.at(-1))]
       entry.botAt = now + Math.round(duration * (0.16 + Math.random() * 0.42))
-      entry.botChoice = Math.random() < skill ? question.answer : shuffle([0, 1, 2, 3].filter((i) => i !== question.answer))[0]
+      entry.botChoice = Math.random() < skill ? question.answer : shuffle(question.choices.map((_, index) => index).filter((index) => index !== question.answer))[0]
     }
     entries.set(player.id, entry)
   }
-  const simulation = shuffle([13, 18, 25, 44])
+  const simulation = shuffle(question.choices.length === 2 ? [38, 62] : [13, 18, 25, 44])
   if (Math.random() < 0.52) {
-    const favorite = simulation.indexOf(44)
+    const favorite = simulation.indexOf(Math.max(...simulation))
     ;[simulation[favorite], simulation[question.answer]] = [simulation[question.answer], simulation[favorite]]
   }
   room.round = {
@@ -238,17 +257,17 @@ function recordAnswer(entry, choice, now, answer) {
 
 function distribution(votes) {
   const total = votes.reduce((sum, vote) => sum + vote, 0)
-  if (!total) return [0, 0, 0, 0]
+  if (!total) return votes
   const exact = votes.map((vote) => vote * 100 / total)
   const rounded = exact.map(Math.floor)
-  const byRemainder = [0, 1, 2, 3].sort((a, b) => (exact[b] - rounded[b]) - (exact[a] - rounded[a]))
+  const byRemainder = votes.map((_, index) => index).sort((a, b) => (exact[b] - rounded[b]) - (exact[a] - rounded[a]))
   const remainder = 100 - rounded.reduce((sum, value) => sum + value, 0)
   for (const index of byRemainder.slice(0, remainder)) rounded[index] += 1
   return rounded
 }
 
 function tally(room, excludedId = null) {
-  const votes = [0, 0, 0, 0]
+  const votes = room.round.question.choices.map(() => 0)
   let voters = 0
   for (const [id, entry] of room.round.entries) {
     if (id === excludedId || !entry.choices.length) continue
@@ -318,8 +337,13 @@ export function act(room, id, action, now = Date.now()) {
   const player = room.players.get(id)
   if (!player?.connected) throw new Error('Reconnecte-toi au salon.')
   const type = action?.type
-  if (['settings', 'start', 'next', 'rematch'].includes(type) && id !== room.hostId) {
+  if (['settings', 'start', 'next', 'rematch', 'finish-personality'].includes(type) && id !== room.hostId) {
     throw new Error('Cette action est réservée à l’hôte.')
+  }
+  if (room.personality) {
+    actPersonality(room, id, action)
+    room.touched = now
+    return
   }
   if (type === 'settings' && room.phase === 'lobby') {
     const { theme, settings } = action
@@ -363,7 +387,7 @@ export function act(room, id, action, now = Date.now()) {
     if (entry.locked || now >= entry.deadline) throw new Error('Tes réponses sont closes.')
     if (type === 'answer') {
       const { choice } = action
-      if (!Number.isInteger(choice) || choice < 0 || choice > 3 || entry.choices.includes(choice) || entry.eliminated.includes(choice)) {
+      if (!Number.isInteger(choice) || choice < 0 || choice >= question.choices.length || entry.choices.includes(choice) || entry.eliminated.includes(choice)) {
         throw new Error('Cette réponse est indisponible.')
       }
       recordAnswer(entry, choice, now, question.answer)
@@ -372,10 +396,11 @@ export function act(room, id, action, now = Date.now()) {
       if (!jokers.some(({ id }) => id === joker) || !player.stock[joker] || entry.used[joker]) {
         throw new Error('Ce joker est indisponible.')
       }
+      if (!jokerFitsQuestion(joker, question.choices.length)) throw new Error('Ce joker ne s’utilise pas sur un Vrai/Faux.')
       player.stock[joker] -= 1
       entry.used[joker] = true
       if (joker === 'half') {
-        entry.eliminated = shuffle([0, 1, 2, 3].filter((index) => index !== question.answer && !entry.choices.includes(index))).slice(0, 2)
+        entry.eliminated = shuffle(question.choices.map((_, index) => index).filter((index) => index !== question.answer && !entry.choices.includes(index))).slice(0, 2)
       }
       if (joker === 'time') entry.deadline += 10000
     }
@@ -395,6 +420,7 @@ export function view(room, id, now = Date.now()) {
   return {
     code: room.code, phase, local: room.local, hostId: room.hostId, selfId: id,
     now, settings: room.settings, index: room.index, questionCounts,
+    personality: room.personality && personalityView(room, id),
     players: [...room.players.values()].filter((player) => phase !== 'lobby' || player.connected).map(publicPlayer),
     stock: phase === 'lobby' ? room.settings.jokers : self.stock,
     question: round && {
@@ -402,6 +428,7 @@ export function view(room, id, now = Date.now()) {
       prompt: round.question.prompt,
       category: round.question.category,
       choices: round.question.choices,
+      explanation: revealed ? round.question.explanation : undefined,
       media: round.question.media?.stage === 'question' || revealed ? round.question.media : undefined,
       followUp: revealed ? round.question.followUp : undefined,
       source: revealed ? round.question.source : undefined,

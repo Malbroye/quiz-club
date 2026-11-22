@@ -82,6 +82,13 @@ fieldset { min-width: 0; }
 .illustrated-label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 620; }
 .illustrated-copy strong { font-size: clamp(23px, 3vw, 34px); font-weight: 750; letter-spacing: -.04em; line-height: 1.08; }
 .illustrated-arrow { display: grid; place-items: center; width: 36px; height: 36px; color: var(--bg); border-radius: 5px; background: var(--gold); }
+.personality-entry { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 525px; min-height: 60px; margin-top: 9px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); text-align: left; }
+.personality-entry:hover:enabled { border-color: var(--gold-line); background: var(--gold-soft); }
+.personality-entry > svg { color: var(--gold); }
+.personality-entry > span { flex: 1; }
+.personality-entry strong, .personality-entry small { display: block; }
+.personality-entry strong { font-size: 15px; }
+.personality-entry small { color: var(--muted); font-size: 12px; }
 .hero-side { min-width: 0; }
 .join-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 24px; }
 .join-panel > .button { margin-top: 15px; }
@@ -272,6 +279,7 @@ input::placeholder { color: var(--muted); opacity: 1; }
 .result-panel .section-head h2 { overflow-wrap: anywhere; }
 .good-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 7px; background: var(--gold-soft); color: var(--gold); flex-shrink: 0; }
 .result-question { color: var(--muted); font-size: 14px; }
+.answer-explanation { margin-top: 6px; font-size: 14px; }
 .earned { font-size: 13px; color: var(--text); background: var(--panel); padding: 7px 9px; border-radius: 6px; margin: 12px 0; }
 .earned.correct { color: var(--gold); background: var(--gold-soft); }
 .earned > span { display: block; font-size: 12px; }
@@ -313,6 +321,37 @@ input::placeholder { color: var(--muted); opacity: 1; }
 .image-modal img { display: block; width: 100%; height: auto; max-height: calc(100dvh - 135px); min-height: 0; object-fit: contain; border-radius: 5px; background: #101010; }
 .image-modal p { margin: 7px 4px 2px; color: var(--muted); font-size: 12px; }
 .modal-form { display: grid; gap: 12px; margin-top: 12px; }
+.personality-setup { display: grid; gap: 6px; }
+.personality-test-option, .personality-formats label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.personality-test-option { padding: 8px; border: 1px solid var(--line); border-radius: 6px; }
+.personality-test-option:has(input:checked) { border-color: var(--gold-line); background: var(--gold-soft); }
+.personality-test-option strong, .personality-test-option small { display: block; }
+.personality-test-option strong { font-size: 13px; }
+.personality-test-option small, .personality-intro > p { color: var(--muted); }
+.personality-test-option small { font-size: 12px; }
+.personality-formats { display: flex; flex-wrap: wrap; column-gap: 18px; row-gap: 4px; font-size: 13px; }
+.personality-setup input[type="radio"], .personality-formats input[type="radio"] { width: 16px; height: 16px; min-height: 0; padding: 0; margin: 0; flex: 0 0 16px; accent-color: var(--gold); }
+.personality-intro > svg, .personality-verdict > svg, .personality-waiting > svg { color: var(--gold); }
+.personality-intro h2, .personality-waiting h1 { margin: 8px 0; font-size: clamp(24px, 4vw, 35px); }
+.personality-intro p, .personality-waiting p, .personality-verdict p { max-width: 58ch; }
+.personality-page { width: min(840px, calc(100% - 32px)); }
+.personality-waiting, .personality-group, .personality-votes { margin-top: 12px; }
+.personality-waiting .button { margin-top: 12px; }
+.personality-progress { display: flex; align-items: center; gap: 7px; margin-top: 12px; color: var(--muted); font-size: 12px; }
+.personality-verdict { border-color: var(--gold-line); background: var(--gold-soft); }
+.personality-verdict h2 { margin: 8px 0; font-size: clamp(26px, 5vw, 44px); }
+.personality-verdict blockquote { margin-top: 12px; padding-left: 12px; border-left: 2px solid var(--gold); color: var(--gold); }
+.personality-group li p { color: var(--muted); font-size: 13px; }
+.personality-votes summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; }
+.personality-votes summary > svg { color: var(--gold); }
+.personality-poll { display: grid; gap: 8px; margin-top: 15px; border-top: 1px solid var(--line); padding-top: 12px; }
+.personality-poll h3 { font-weight: 700; }
+.personality-poll ul { display: grid; gap: 8px; }
+.personality-poll li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; font-size: 13px; }
+.personality-poll li > strong { color: var(--gold); font-variant-numeric: tabular-nums; }
+.personality-poll .vote-track { grid-column: 1 / -1; height: 4px; }
+.personality-poll .vote-track i { background: var(--gold); }
+.personality-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .speech-settings { display: grid; gap: 14px; margin-top: 14px; }
 .speech-toggle { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 650; }
 .speech-toggle input { width: 18px; height: 18px; min-height: 0; flex: 0 0 18px; accent-color: var(--gold); }
@@ -385,3 +424,5 @@ input::placeholder { color: var(--muted); opacity: 1; }
   .home-sticker { animation: none; }
   .home-sticker:nth-child(odd) { opacity: 1; transform: translate(-50%, -50%) rotate(var(--tilt)); }
 }
+.round-controls .binary-answers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.binary-answers .answer > strong { font-size: 17px; }
