@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: quiz-club
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health

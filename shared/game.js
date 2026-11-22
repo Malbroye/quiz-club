@@ -1,0 +1,374 @@
+import { categories, illustratedCategory, questions, themeOptions } from './questions.js'
+
+export const avatars = ['👾', '🦊', '🐸', '🤖', '🐙', '🦄', '👻', '🐼', '🐱', '👽', '🦖', '🐝']
+export const jokers = [
+  { id: 'half', name: '50/50', description: 'Retire deux mauvaises réponses.' },
+  { id: 'poll', name: 'Sondage', description: 'Consulte les votes des autres joueurs, ou une estimation.' },
+  { id: 'double', name: 'Double chance', description: 'Tente deux réponses. Une bonne suffit.' },
+  { id: 'time', name: '+10 secondes', description: 'Prolonge ton chrono personnel.' },
+]
+export const counts = [5, 10, 15, 20, 30]
+export const durations = [10, 15, 20, 30]
+export const defaultSettings = {
+  themes: [],
+  total: 5,
+  duration: 15,
+  jokers: Object.fromEntries(jokers.map(({ id }) => [id, 1])),
+}
+
+const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+const botNames = ['Pixel', 'Mochi', 'Glitch']
+const botSkill = [0.74, 0.55, 0.4]
+
+export function makeCode() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(6)), (value) => letters[value % letters.length]).join('')
+}
+
+function shuffle(items) {
+  const result = [...items]
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[result[i], result[j]] = [result[j], result[i]]
+  }
+  return result
+}
+
+export function questionPool(themes) {
+  if (themes.includes(illustratedCategory.id)) {
+    return questions.filter(({ media }) => media?.stage === 'question' && (media.type === 'image' || media.type === 'video'))
+  }
+  return themes.length ? questions.filter((question) => themes.includes(question.category)) : questions
+}
+
+export const questionCounts = Object.fromEntries(themeOptions.map(({ id }) => [id, questionPool([id]).length]))
+
+function settingsFrom(input) {
+  const requestedThemes = Array.isArray(input?.themes) ? input.themes : []
+  const themes = requestedThemes.includes(illustratedCategory.id)
+    ? [illustratedCategory.id]
+    : categories.filter(({ id }) => requestedThemes.includes(id)).map(({ id }) => id)
+  const max = questionPool(themes).length
+  const requested = counts.includes(input?.total) ? input.total : defaultSettings.total
+  return {
+    themes,
+    total: counts.filter((count) => count <= max && count <= requested).at(-1) ?? 5,
+    duration: durations.includes(input?.duration) ? input.duration : defaultSettings.duration,
+    jokers: Object.fromEntries(jokers.map(({ id }) => {
+      const value = input?.jokers?.[id]
+      return [id, Number.isInteger(value) && value >= 0 && value <= 3 ? value : defaultSettings.jokers[id]]
+    })),
+  }
+}
+
+function resetPlayer(player, settings) {
+  Object.assign(player, {
+    score: 0, streak: 0, bestStreak: 0, correctCount: 0, bestTime: null, stock: { ...settings.jokers },
+  })
+}
+
+export function addPlayer(room, profile, id = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join(''), bot = false) {
+  if (room.phase !== 'lobby') throw new Error('Cette partie a déjà commencé.')
+  const name = typeof profile?.name === 'string' ? profile.name.trim().replace(/\s+/g, ' ').slice(0, 20) : ''
+  if (!name) throw new Error('Choisis un pseudo pour entrer.')
+  if (room.players.size >= 24) throw new Error('Ce salon est complet.')
+  if ([...room.players.values()].some((player) => player.name.toLowerCase() === name.toLowerCase())) {
+    throw new Error('Ce pseudo est déjà pris dans le salon.')
+  }
+  const player = { id, name, avatar: avatars.includes(profile.avatar) ? profile.avatar : avatars[0], connected: true, bot }
+  resetPlayer(player, room.settings)
+  room.players.set(id, player)
+  room.hostId ??= id
+  return player
+}
+
+export function createRoom(profile, { local = false, code = makeCode(), now = Date.now() } = {}) {
+  const room = {
+    code, local, players: new Map(), hostId: null, phase: 'lobby', settings: settingsFrom(defaultSettings),
+    deck: [], questionHistory: [], round: null, index: -1, ranking: [], touched: now,
+  }
+  const player = addPlayer(room, profile)
+  if (local) {
+    botNames.forEach((name, index) => addPlayer(room, {
+      name: player.name.toLowerCase() === name.toLowerCase() ? name + ' Bot' : name,
+      avatar: avatars[index + 1],
+    }, 'bot-' + index, true))
+  }
+  return { room, player }
+}
+
+export function setConnected(room, id, connected) {
+  const player = room.players.get(id)
+  if (!player) return
+  player.connected = connected
+  if (!room.players.get(room.hostId)?.connected) {
+    room.hostId = [...room.players.values()].find((candidate) => !candidate.bot && candidate.connected)?.id ?? null
+  }
+}
+
+export function removePlayer(room, id) {
+  setConnected(room, id, false)
+  if (room.phase === 'lobby') room.players.delete(id)
+}
+
+function rank(room) {
+  return [...room.players.values()].sort((a, b) =>
+    b.score - a.score || b.correctCount - a.correctCount ||
+    (a.bestTime ?? Infinity) - (b.bestTime ?? Infinity) || a.name.localeCompare(b.name, 'fr'),
+  )
+}
+
+function makeDeck(settings, history) {
+  const pool = questionPool(settings.themes)
+  const seen = new Set(history)
+  const fresh = pool.filter(({ id }) => !seen.has(id))
+  const freshLimit = Math.min(settings.total, fresh.length)
+  const groups = shuffle(categories.map(({ id }) => shuffle(fresh.filter((question) => question.category === id))))
+  const takeMedia = (type, preferredGroups) => {
+    for (const group of preferredGroups) {
+      const eligible = ({ media }) => media?.type === type && media.stage === 'question'
+      const preferred = group.findIndex((question) => eligible(question) && (type === 'image' ? question.media.items : question.media.url))
+      const index = preferred < 0 ? group.findIndex(eligible) : preferred
+      if (index >= 0) return group.splice(index, 1)[0]
+    }
+  }
+  const firstImage = takeMedia('image', groups)
+  const videoGroups = groups.filter((group) => group[0]?.category !== firstImage?.category)
+  const firstVideo = takeMedia('video', videoGroups) ?? takeMedia('video', groups)
+  const firstAudio = (!firstVideo || settings.total >= 10) && takeMedia('audio', groups)
+  const ordered = [firstImage, firstVideo, firstAudio].filter(Boolean)
+  while (ordered.length < freshLimit) {
+    for (const group of shuffle(groups.filter((group) => group.length))) ordered.push(group.pop())
+  }
+  if (ordered.length < settings.total) {
+    const byId = new Map(pool.map((question) => [question.id, question]))
+    for (const id of history) {
+      if (byId.has(id)) ordered.push(byId.get(id))
+      if (ordered.length === settings.total) break
+    }
+  }
+  return ordered.slice(0, settings.total).map((question) => {
+    const indexes = shuffle([0, 1, 2, 3])
+    return { ...question, choices: indexes.map((index) => question.choices[index]), answer: indexes.indexOf(question.answer) }
+  })
+}
+
+function openRound(room, now) {
+  room.index += 1
+  const question = room.deck[room.index]
+  const duration = room.settings.duration * 1000
+  const entries = new Map()
+  for (const player of room.players.values()) {
+    const entry = { deadline: now + duration, choices: [], locked: false, used: {}, eliminated: [], points: 0 }
+    if (player.bot) {
+      const skill = botSkill[Number(player.id.at(-1))]
+      entry.botAt = now + Math.round(duration * (0.16 + Math.random() * 0.42))
+      entry.botChoice = Math.random() < skill ? question.answer : shuffle([0, 1, 2, 3].filter((i) => i !== question.answer))[0]
+    }
+    entries.set(player.id, entry)
+  }
+  const simulation = shuffle([13, 18, 25, 44])
+  if (Math.random() < 0.52) {
+    const favorite = simulation.indexOf(44)
+    ;[simulation[favorite], simulation[question.answer]] = [simulation[question.answer], simulation[favorite]]
+  }
+  room.round = {
+    question, openedAt: now, entries, previous: room.ranking.map(({ id }) => id),
+    simulation,
+  }
+  room.phase = 'question'
+}
+
+function recordAnswer(entry, choice, now, answer) {
+  entry.choices.push(choice)
+  if (entry.used.double && choice !== answer && entry.choices.length === 1) return
+  entry.locked = true
+  entry.answeredAt = now
+}
+
+function distribution(votes) {
+  const total = votes.reduce((sum, vote) => sum + vote, 0)
+  if (!total) return [0, 0, 0, 0]
+  const exact = votes.map((vote) => vote * 100 / total)
+  const rounded = exact.map(Math.floor)
+  const byRemainder = [0, 1, 2, 3].sort((a, b) => (exact[b] - rounded[b]) - (exact[a] - rounded[a]))
+  const remainder = 100 - rounded.reduce((sum, value) => sum + value, 0)
+  for (const index of byRemainder.slice(0, remainder)) rounded[index] += 1
+  return rounded
+}
+
+function tally(room, excludedId = null) {
+  const votes = [0, 0, 0, 0]
+  let voters = 0
+  for (const [id, entry] of room.round.entries) {
+    if (id === excludedId || !entry.choices.length) continue
+    if (excludedId && (!room.players.get(id)?.connected || room.players.get(id)?.bot)) continue
+    votes[entry.choices.at(-1)] += 1
+    voters += 1
+  }
+  return { votes, voters }
+}
+
+function pollFor(room, id) {
+  const { votes, voters } = tally(room, id)
+  return { percentages: voters >= 2 ? distribution(votes) : room.round.simulation, voters, simulated: voters < 2 }
+}
+
+function finishRound(room) {
+  const { question, entries, openedAt } = room.round
+  for (const [id, entry] of entries) {
+    const player = room.players.get(id)
+    if (!entry.choices.includes(question.answer)) {
+      player.streak = 0
+      continue
+    }
+    const elapsed = Math.max(0, entry.answeredAt - openedAt)
+    const speed = Math.max(0, 1 - elapsed / (room.settings.duration * 1000))
+    player.streak += 1
+    player.correctCount += 1
+    player.bestStreak = Math.max(player.bestStreak, player.streak)
+    player.bestTime = Math.min(player.bestTime ?? Infinity, elapsed)
+    entry.points = 600 + Math.round(speed * 400) + Math.min(5, player.streak - 1) * 75
+    player.score += entry.points
+  }
+  room.ranking = rank(room)
+  room.phase = 'reveal'
+}
+
+export function tick(room, now = Date.now()) {
+  if (room.phase !== 'question') return false
+  const { entries, question } = room.round
+  let changed = false
+  for (const entry of entries.values()) {
+    if (!entry.locked && entry.botAt != null && now >= entry.botAt) {
+      recordAnswer(entry, entry.botChoice, entry.botAt, question.answer)
+      changed = true
+    }
+    if (!entry.locked && now >= entry.deadline) {
+      entry.locked = true
+      changed = true
+    }
+  }
+  const soloFinished = room.local && entries.get(room.hostId)?.locked
+  if (soloFinished) {
+    // Complete the simulation using the bots' preassigned answers and reaction times.
+    for (const entry of entries.values()) {
+      if (!entry.locked && entry.botAt != null) recordAnswer(entry, entry.botChoice, entry.botAt, question.answer)
+    }
+  }
+  if (soloFinished || [...entries.values()].every((entry) => entry.locked)) {
+    finishRound(room)
+    return true
+  }
+  return changed
+}
+
+export function act(room, id, action, now = Date.now()) {
+  const player = room.players.get(id)
+  if (!player?.connected) throw new Error('Reconnecte-toi au salon.')
+  const type = action?.type
+  if (['settings', 'start', 'next', 'rematch'].includes(type) && id !== room.hostId) {
+    throw new Error('Cette action est réservée à l’hôte.')
+  }
+  if (type === 'settings' && room.phase === 'lobby') {
+    const { theme, settings } = action
+    const current = room.settings
+    const themes = theme
+      ? current.themes.includes(theme)
+        ? current.themes.filter((id) => id !== theme)
+        : [...current.themes.filter((id) => id !== illustratedCategory.id), theme]
+      : settings?.themes ?? current.themes
+    room.settings = settingsFrom({ ...current, ...settings, themes, jokers: { ...current.jokers, ...settings?.jokers } })
+  } else if (type === 'start' && room.phase === 'lobby') {
+    const active = [...room.players.values()].filter((candidate) => candidate.connected)
+    if (active.length < 2) throw new Error('Attends qu’un autre joueur rejoigne le salon.')
+    for (const candidate of room.players.values()) {
+      if (!candidate.connected) room.players.delete(candidate.id)
+      else resetPlayer(candidate, room.settings)
+    }
+    const history = room.questionHistory ?? []
+    room.deck = makeDeck(room.settings, history)
+    const picked = new Set(room.deck.map(({ id }) => id))
+    room.questionHistory = [...history.filter((id) => !picked.has(id)), ...picked]
+    room.ranking = []
+    room.index = -1
+    openRound(room, now)
+  } else if (type === 'next' && room.phase === 'reveal') {
+    if (action.round !== room.index) throw new Error('Cette manche est déjà terminée.')
+    if (room.index + 1 === room.deck.length) room.phase = 'final'
+    else openRound(room, now)
+  } else if (type === 'rematch' && room.phase === 'final') {
+    room.phase = 'lobby'
+    room.round = null
+    room.index = -1
+    room.deck = []
+    room.ranking = []
+    for (const candidate of room.players.values()) {
+      if (!candidate.connected) room.players.delete(candidate.id)
+      else resetPlayer(candidate, room.settings)
+    }
+  } else if ((type === 'answer' || type === 'joker') && room.phase === 'question') {
+    if (action.round !== room.index) throw new Error('Cette question est déjà terminée.')
+    const { question, entries } = room.round
+    const entry = entries.get(id)
+    if (entry.locked || now >= entry.deadline) throw new Error('Tes réponses sont closes.')
+    if (type === 'answer') {
+      const { choice } = action
+      if (!Number.isInteger(choice) || choice < 0 || choice > 3 || entry.choices.includes(choice) || entry.eliminated.includes(choice)) {
+        throw new Error('Cette réponse est indisponible.')
+      }
+      recordAnswer(entry, choice, now, question.answer)
+    } else {
+      const { joker } = action
+      if (!jokers.some(({ id }) => id === joker) || !player.stock[joker] || entry.used[joker]) {
+        throw new Error('Ce joker est indisponible.')
+      }
+      player.stock[joker] -= 1
+      entry.used[joker] = true
+      if (joker === 'half') {
+        entry.eliminated = shuffle([0, 1, 2, 3].filter((index) => index !== question.answer && !entry.choices.includes(index))).slice(0, 2)
+      }
+      if (joker === 'time') entry.deadline += 10000
+    }
+  } else {
+    throw new Error('Cette action est indisponible à ce stade.')
+  }
+  room.touched = now
+  tick(room, now)
+}
+
+export function view(room, id, now = Date.now()) {
+  const { phase, round } = room
+  const entry = round?.entries.get(id)
+  const self = room.players.get(id)
+  const revealed = phase === 'reveal' || phase === 'final'
+  const publicPlayer = ({ id, name, avatar, connected, bot }) => ({ id, name, avatar, connected, bot })
+  return {
+    code: room.code, phase, local: room.local, hostId: room.hostId, selfId: id,
+    now, settings: room.settings, index: room.index, questionCounts,
+    players: [...room.players.values()].filter((player) => phase !== 'lobby' || player.connected).map(publicPlayer),
+    stock: phase === 'lobby' ? room.settings.jokers : self.stock,
+    question: round && {
+      id: round.question.id,
+      prompt: round.question.prompt,
+      category: round.question.category,
+      choices: round.question.choices,
+      media: round.question.media?.stage === 'question' || revealed ? round.question.media : undefined,
+      followUp: revealed ? round.question.followUp : undefined,
+      source: revealed ? round.question.source : undefined,
+    },
+    answered: round ? [...round.entries.values()].filter((item) => item.choices.length && item.locked).length : 0,
+    personal: entry && {
+      start: round.openedAt, deadline: entry.deadline, choices: entry.choices, locked: entry.locked,
+      used: entry.used, eliminated: entry.eliminated, poll: entry.used.poll ? pollFor(room, id) : null,
+      points: revealed ? entry.points : null,
+    },
+    result: revealed ? { answer: round.question.answer, percentages: distribution(tally(room).votes), voters: tally(room).voters } : null,
+    ranking: room.ranking.map((player, index) => {
+      const previous = round.previous.indexOf(player.id)
+      return {
+        ...publicPlayer(player), place: index + 1, movement: previous < 0 ? null : previous - index,
+        score: player.score, streak: player.streak, bestStreak: player.bestStreak, bestTime: player.bestTime, correctCount: player.correctCount,
+      }
+    }),
+  }
+}
