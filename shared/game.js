@@ -10,6 +10,11 @@ export const nameColors = [
   { id: 'pink', label: 'Rose', hex: '#ffb1d5' },
   { id: 'peach', label: 'Pêche', hex: '#ffc292' },
 ]
+
+export function isCustomNameColor(value) {
+  return typeof value === 'string' && value.length === 7 && /^#[0-9a-f]{6}$/i.test(value)
+}
+
 export const maxAvatarPhotoLength = 4096
 
 export function isAvatarPhoto(photo) {
@@ -112,7 +117,9 @@ export function addPlayer(room, profile, id = Array.from(crypto.getRandomValues(
     id, name, connected: true, bot,
     avatar: avatars.includes(profile.avatar) ? profile.avatar : avatars[0],
     photo: isAvatarPhoto(profile.photo) ? profile.photo : undefined,
-    nameColor: nameColors.find(({ id }) => id === profile.nameColor)?.id,
+    nameColor: isCustomNameColor(profile.nameColor)
+      ? profile.nameColor.toLowerCase()
+      : nameColors.find(({ id }) => id === profile.nameColor)?.id,
   }
   resetPlayer(player, room.settings)
   room.players.set(id, player)

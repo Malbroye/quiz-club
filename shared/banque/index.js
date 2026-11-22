@@ -15,6 +15,14 @@ import moreMemes from './extension/memes.js'
 import moreSports from './extension/sports.js'
 import moreTwitch from './extension/twitch.js'
 import moreYouTube from './extension/youtube.js'
+import extraAnimals from './supplement/animals.js'
+import extraCinema from './supplement/cinema.js'
+import extraCulture from './supplement/culture.js'
+import extraGames from './supplement/games.js'
+import extraMemes from './supplement/memes.js'
+import extraSports from './supplement/sports.js'
+import extraTwitch from './supplement/twitch.js'
+import extraYouTube from './supplement/youtube.js'
 
 export default { animals, cinema, culture, games, memes, sports, twitch, youtube }
 export const subjectPacks = [
@@ -30,4 +38,15 @@ export const expansionPacks = {
   sports: moreSports,
   twitch: moreTwitch,
   youtube: moreYouTube,
+}
+
+export const supplementPacks = {
+  animals: extraAnimals,
+  cinema: extraCinema,
+  culture: extraCulture,
+  games: extraGames,
+  memes: extraMemes,
+  sports: extraSports,
+  twitch: extraTwitch,
+  youtube: extraYouTube,
 }

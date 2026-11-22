@@ -1,21 +1,21 @@
 import { existingMedia, mediaLibrary, webQuestions } from './web-questions.js'
 import { customMedia, customMediaLibrary, customQuestions } from './mes-questions.js'
-import questionPacks, { expansionPacks, subjectPacks } from './banque/index.js'
+import questionPacks, { expansionPacks, subjectPacks, supplementPacks } from './banque/index.js'
 import { expansionImages, subjectVideos } from './banque/extension/images.js'
 import { mediaQuestions, questionVideos } from './banque/media-questions.js'
 
 export const categories = [
-  { id: 'culture', name: 'Culture générale', color: '#b9a3ff', icon: 'brain' },
-  { id: 'animals', name: 'Animaux', color: '#a9efc5', icon: 'paw' },
-  { id: 'sports', name: 'Sport', color: '#f8e77c', icon: 'trophy' },
-  { id: 'twitch', name: 'Twitch & Streaming', color: '#cba5ff', icon: 'twitch' },
-  { id: 'youtube', name: 'YouTube', color: '#ff9ca9', icon: 'youtube' },
-  { id: 'memes', name: 'Mèmes & Culture Internet', color: '#ffb588', icon: 'smile' },
-  { id: 'games', name: 'Jeux vidéo', color: '#92ccff', icon: 'gamepad' },
-  { id: 'cinema', name: 'Cinéma & Séries', color: '#f3aeea', icon: 'film' },
+  { id: 'culture', name: 'Culture générale', icon: 'brain' },
+  { id: 'animals', name: 'Animaux', icon: 'paw' },
+  { id: 'sports', name: 'Sport', icon: 'trophy' },
+  { id: 'twitch', name: 'Twitch & Streaming', icon: 'twitch' },
+  { id: 'youtube', name: 'YouTube', icon: 'youtube' },
+  { id: 'memes', name: 'Mèmes & Culture Internet', icon: 'smile' },
+  { id: 'games', name: 'Jeux vidéo', icon: 'gamepad' },
+  { id: 'cinema', name: 'Cinéma & Séries', icon: 'film' },
 ]
 
-export const illustratedCategory = { id: 'illustrated', name: 'Illustré', color: '#b7eee5', icon: 'image' }
+export const illustratedCategory = { id: 'illustrated', name: 'Illustré', icon: 'image' }
 export const themeOptions = [...categories, illustratedCategory]
 
 // The first choice in each entry is correct. The game shuffles choices before play.
@@ -112,15 +112,22 @@ const builtInQuestions = Object.entries(bank).flatMap(([category, entries]) => [
   })),
 ])
 
-const packQuestions = [
+function questionsFromPacks(packs) {
+  return packs.flatMap(({ category, subject, rows, series = 'pack' }) =>
+    rows.map(([prompt, correct, second, third, fourth, source, media], index) => ({
+      id: [category, subject, series, index + 1].filter(Boolean).join('-'),
+      category, prompt, choices: [correct, second, third, fourth], answer: 0, source, media: media ?? subject,
+    })),
+  )
+}
+
+const packQuestions = questionsFromPacks([
   ...Object.entries(questionPacks).map(([category, rows]) => ({ category, rows })),
   ...subjectPacks,
   ...Object.entries(expansionPacks).map(([category, rows]) => ({ category, rows, series: 'extension' })),
-].flatMap(({ category, subject, rows, series = 'pack' }) =>
-  rows.map(([prompt, correct, second, third, fourth, source, media], index) => ({
-    id: [category, subject, series, index + 1].filter(Boolean).join('-'),
-    category, prompt, choices: [correct, second, third, fourth], answer: 0, source, media: media ?? subject,
-  })),
+])
+const extraQuestions = questionsFromPacks(
+  Object.entries(supplementPacks).map(([category, rows]) => ({ category, rows, series: 'supplement' })),
 )
 
 export const imageCatalog = { ...mediaLibrary, ...expansionImages, ...customMediaLibrary }
@@ -138,7 +145,7 @@ function resolveMedia(value) {
   return { ...entry.items[index % entry.items.length], type: 'image', stage: entry.stage }
 }
 
-export const questions = [...builtInQuestions, ...packQuestions, ...mediaQuestions, ...customQuestions].map((question) => {
+export const questions = [...builtInQuestions, ...packQuestions, ...mediaQuestions, ...customQuestions, ...extraQuestions].map((question) => {
   const media = customMedia[question.id] ?? question.media
   const subject = typeof media === 'string' ? media : media?.ref
   return {

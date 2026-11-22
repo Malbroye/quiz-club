@@ -10,6 +10,7 @@ import { act, avatars, counts, createRoom, defaultSettings, durations, jokers, m
 import { categories, illustratedCategory, themeOptions } from '../shared/questions.js'
 import { PlayerAvatar, PlayerName, ProfileAppearance } from './profile.jsx'
 import { SpeechSettings, useQuestionSpeech } from './speech.jsx'
+import { heroLines, illustratedCovers, pickHomeItem } from './home-content.js'
 import './styles.css'
 
 const categoryIcons = { brain: Brain, paw: PawPrint, trophy: Trophy, twitch: Twitch, youtube: Youtube, smile: Smile, gamepad: Gamepad2, film: Film, image: Image }
@@ -256,18 +257,58 @@ function ErrorText({ children }) {
   return children ? <p className="error-text" role="alert">{children}</p> : null
 }
 
+const homeStickers = [
+  { name: 'flo', x: 8, y: 11, size: 131, tilt: -17, cycle: 13, delay: -2 },
+  { name: 'mathis', x: 69, y: 7, size: 96, tilt: 13, cycle: 16, delay: -11 },
+  { name: 'axel', x: 92, y: 16, size: 144, tilt: 15, cycle: 17, delay: -1 },
+  { name: 'mathis', x: 27, y: 16, size: 106, tilt: -14, cycle: 14, delay: -5 },
+  { name: 'axel', x: 50, y: 24, size: 125, tilt: 11, cycle: 19, delay: -3 },
+  { name: 'flo', x: 78, y: 34, size: 70, tilt: 18, cycle: 12, delay: -9 },
+  { name: 'axel', x: 6, y: 43, size: 95, tilt: -16, cycle: 15, delay: -6 },
+  { name: 'mathis', x: 44, y: 44, size: 141, tilt: -12, cycle: 18, delay: -1 },
+  { name: 'flo', x: 95, y: 51, size: 128, tilt: 9, cycle: 14, delay: -5.5 },
+  { name: 'mathis', x: 16, y: 63, size: 118, tilt: 17, cycle: 17, delay: -2 },
+  { name: 'axel', x: 57, y: 60, size: 87, tilt: -9, cycle: 12, delay: -3.1 },
+  { name: 'flo', x: 33, y: 73, size: 113, tilt: -22, cycle: 16, delay: -13.1 },
+  { name: 'mathis', x: 76, y: 77, size: 121, tilt: 12, cycle: 15, delay: -2.6 },
+  { name: 'axel', x: 19, y: 93, size: 152, tilt: -11, cycle: 19, delay: -5.4 },
+  { name: 'flo', x: 61, y: 91, size: 74, tilt: 13, cycle: 13, delay: -4.8 },
+  { name: 'mathis', x: 90, y: 90, size: 102, tilt: -15, cycle: 16, delay: -10.2 },
+]
+
+function HomeStickers({ paused }) {
+  const prefix = location.protocol === 'file:' ? './' : '/'
+  return <div className="home-stickers" data-paused={paused} aria-hidden="true">
+    {homeStickers.map(({ name, x, y, size, tilt, cycle, delay }) => <img
+      key={`${x}-${y}`} className="home-sticker" src={`${prefix}${name}.png`} alt="" decoding="async"
+      style={{ left: `${x}%`, top: `${y}%`, '--size': `${size}px`, '--tilt': `${tilt}deg`, animationDuration: `${cycle}s`, animationDelay: `${delay}s` }}
+    />)}
+  </div>
+}
+
+function useHomeRotation(items, key) {
+  const [selection] = useState(() => pickHomeItem(items, stored(key, [], 'localStorage')))
+  useEffect(() => { store(key, selection.history, 'localStorage') }, [key, selection])
+  return selection.item
+}
+
 function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, openSolo, code, setCode }) {
+  const headline = useHomeRotation(heroLines, 'qc-hero')
+  const cover = useHomeRotation(illustratedCovers, 'qc-illustrated-cover')
+  const [stickersPaused, setStickersPaused] = useState(() => stored('qc-stickers-paused', false, 'localStorage'))
+  useEffect(() => { store('qc-stickers-paused', stickersPaused, 'localStorage') }, [stickersPaused])
   return <main className="home page-width">
+    <HomeStickers paused={stickersPaused} />
     <section className="hero" aria-labelledby="home-title">
       <div className="hero-copy">
-        <h1 className="display hero-title" id="home-title">On <em>joue&nbsp;?</em></h1>
+        <h1 className="display hero-title" id="home-title">{headline[0]} <em>{headline[1]}</em></h1>
         <p>Défie tes amis ou joue en solo contre trois bots.</p>
         <div className="home-actions">
           <button className="button primary" onClick={openCreate}><Plus size={20} /> Créer un salon</button>
           <button className="button secondary" disabled={game.busy} onClick={() => openSolo()}><Play size={17} /> Jouer en solo</button>
         </div>
         <button className="illustrated-card" type="button" onClick={() => openSolo(illustratedCategory.id)} disabled={game.busy}>
-          <img src={localMediaPaths('cinema/stranger-things/stranger-things-02.jpg')[0]} alt="" />
+          <img src={localMediaPaths(cover)[0]} alt="" />
           <span className="illustrated-copy"><span className="illustrated-label"><Image size={15} /> Images et vidéos</span><strong>Quiz illustré</strong></span>
           <span className="illustrated-arrow"><ArrowRight size={20} /></span>
         </button>
@@ -281,14 +322,14 @@ function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, 
           <input id="join-name" placeholder="Ex. Pixel42" autoComplete="nickname" required maxLength={20} value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} />
           <ProfileAppearance {...{ profile, setProfile, photoBusy, setPhotoBusy }} />
           <ErrorText>{game.error}</ErrorText>
-          <button className="button violet w-full justify-center" disabled={game.busy || photoBusy}>Rejoindre <ArrowRight size={17} /></button>
+          <button className="button outlined w-full justify-center" disabled={game.busy || photoBusy}>Rejoindre <ArrowRight size={17} /></button>
         </form>
       </div>
     </section>
     <section className="themes" aria-labelledby="themes-title">
-      <div className="themes-heading"><h2 className="display" id="themes-title">Jouer par thème</h2><span className="theme-count">Solo</span></div>
+      <div className="themes-heading"><h2 className="display" id="themes-title">Jouer par thème</h2><button className="sticker-toggle" type="button" onClick={() => setStickersPaused(!stickersPaused)}>{stickersPaused ? 'Afficher les stickers' : 'Masquer les stickers'}</button></div>
       <div className="theme-grid">
-        {categories.map((category) => <button type="button" className="theme-card" key={category.id} onClick={() => openSolo(category.id)} disabled={game.busy} style={{ '--category': category.color }}><span className="theme-icon"><CategoryIcon category={category} size={19} /></span><span>{category.name}</span><ArrowRight className="theme-arrow" size={16} /></button>)}
+        {categories.map((category) => <button type="button" className="theme-card" key={category.id} onClick={() => openSolo(category.id)} disabled={game.busy}><span className="theme-icon"><CategoryIcon category={category} size={19} /></span><span>{category.name}</span><ArrowRight className="theme-arrow" size={16} /></button>)}
       </div>
     </section>
   </main>
@@ -317,7 +358,7 @@ function Settings({ state, action, host }) {
       <legend className="field-label">Thèmes</legend>
       <div className="setting-themes">
         <button aria-pressed={!settings.themes.length} className="setting-option random" onClick={() => update({ themes: [] })}><Shuffle size={18} /> Tous les thèmes <span className="theme-question-count">{total} questions</span></button>
-        {themeOptions.map((category) => <button className="setting-option" key={category.id} aria-pressed={settings.themes.includes(category.id)} onClick={() => toggleTheme(category.id)} style={{ '--category': category.color }}><CategoryIcon category={category} size={17} /><span className="theme-option-label">{category.name}<small>{themeCounts[category.id]} questions</small></span></button>)}
+        {themeOptions.map((category) => <button className="setting-option" key={category.id} aria-pressed={settings.themes.includes(category.id)} onClick={() => toggleTheme(category.id)}><CategoryIcon category={category} size={17} /><span className="theme-option-label">{category.name}<small>{themeCounts[category.id]} questions</small></span></button>)}
       </div>
     </fieldset>
     <div className="settings-fields">
@@ -491,7 +532,7 @@ function Question({ state, action, clockOffset, error, reconnecting, speech }) {
   const play = (input) => action({ ...input, round: state.index })
   useEffect(() => { heading.current.focus({ preventScroll: true }) }, [state.index])
   return <main className="page-width game-page question-page">
-    <div className="question-top"><span className="eyebrow">Question {state.index + 1} sur {settings.total}</span><span className="category-tag" style={{ '--category': category.color }}><CategoryIcon category={category} size={17} /> {category.name}</span></div>
+    <div className="question-top"><span className="eyebrow">Question {state.index + 1} sur {settings.total}</span><span className="category-tag"><CategoryIcon category={category} size={17} /> {category.name}</span></div>
     <div className="progress-strip" aria-hidden="true">{Array.from({ length: settings.total }, (_, index) => <i className={index <= state.index ? 'done' : ''} key={index} />)}</div>
     <section className="question-panel">
       <div className="question-heading">
@@ -507,7 +548,7 @@ function Question({ state, action, clockOffset, error, reconnecting, speech }) {
       {question.media && <div className="round-media"><QuestionMedia key={question.id} media={question.media} /></div>}
       <div className="round-controls">
         <div className="answer-grid">
-          {question.choices.map((choice, index) => <button className={'answer letter-' + index} key={index} disabled={locked || reconnecting || personal.eliminated.includes(index) || personal.choices.includes(index)} data-selected={personal.choices.includes(index)} data-eliminated={personal.eliminated.includes(index)} onClick={() => play({ type: 'answer', choice: index })}><span>{letters[index]}</span><strong>{choice}</strong>{personal.choices.includes(index) && <Check size={20} />}</button>)}
+          {question.choices.map((choice, index) => <button className="answer" key={index} disabled={locked || reconnecting || personal.eliminated.includes(index) || personal.choices.includes(index)} data-selected={personal.choices.includes(index)} data-eliminated={personal.eliminated.includes(index)} onClick={() => play({ type: 'answer', choice: index })}><span>{letters[index]}</span><strong>{choice}</strong>{personal.choices.includes(index) && <Check size={20} />}</button>)}
         </div>
         <div className="question-status" role="status">{locked ? (personal.choices.length ? 'Réponse enregistrée.' : 'Temps écoulé.') : personal.used.double ? (personal.choices.length ? 'Tu peux tenter une deuxième réponse.' : 'Double chance activée.') : 'Choisis une réponse.'} <span>{state.answered} / {state.players.length} ont répondu</span></div>
       </div>
@@ -636,7 +677,7 @@ function App() {
       <ErrorText>{game.error}</ErrorText><button className="button primary w-full justify-center" disabled={game.busy || photoBusy}>{modal === 'solo' ? <Gamepad2 size={19} /> : <Globe2 size={19} />} {modal === 'solo' ? (isIllustrated ? 'Lancer le quiz' : 'Continuer') : (game.busy ? 'Connexion…' : 'Créer le salon')} <ArrowRight size={18} /></button>
     </form></Modal>}
     {modal === 'speech' && <Modal close={close} title="Lecture vocale"><SpeechSettings speech={speech} /></Modal>}
-    {modal === 'rules' && <Modal close={close} title="Comment jouer"><ol className="rules-list"><li><Users size={22} /><div><strong>Forme ton salon</strong><p>Partage le code avec tes amis ou lance une partie solo avec trois bots.</p></div></li><li><Zap size={22} /><div><strong>Marque des points</strong><p>Enchaîne les bonnes réponses pour gagner un bonus de série. Si l’hôte active le bonus de rapidité, les bonnes réponses les plus rapides rapportent davantage.</p></div></li><li><Sparkles size={22} /><div><strong>Utilise tes jokers</strong><p>Retire des choix, consulte le sondage, tente une deuxième réponse ou prends dix secondes de plus.</p></div></li></ol><button className="button violet w-full justify-center" onClick={close}>Compris <Check size={18}/></button></Modal>}
+    {modal === 'rules' && <Modal close={close} title="Comment jouer"><ol className="rules-list"><li><Users size={22} /><div><strong>Forme ton salon</strong><p>Partage le code avec tes amis ou lance une partie solo avec trois bots.</p></div></li><li><Zap size={22} /><div><strong>Marque des points</strong><p>Enchaîne les bonnes réponses pour gagner un bonus de série. Si l’hôte active le bonus de rapidité, les bonnes réponses les plus rapides rapportent davantage.</p></div></li><li><Sparkles size={22} /><div><strong>Utilise tes jokers</strong><p>Retire des choix, consulte le sondage, tente une deuxième réponse ou prends dix secondes de plus.</p></div></li></ol><button className="button outlined w-full justify-center" onClick={close}>Compris <Check size={18}/></button></Modal>}
     {modal === 'leave' && <Modal close={close} title="Quitter la partie ?"><p className="modal-message">Tu vas retourner à l’accueil.</p><div className="flex flex-wrap gap-3"><button className="button secondary" onClick={close}>Rester</button><button className="button primary" onClick={leave}>Quitter</button></div></Modal>}
   </>
 }

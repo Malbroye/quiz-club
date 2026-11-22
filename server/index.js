@@ -14,7 +14,7 @@ const socketIO = await import('socket.io').catch((error) => {
   return null
 })
 // A start action can include the host's ordered history for the whole question bank.
-const io = socketIO && new socketIO.Server(server, { maxHttpBufferSize: 32 * 1024 })
+const io = socketIO && new socketIO.Server(server, { maxHttpBufferSize: 64 * 1024 })
 const storage = io && process.env.QUIZ_DB ? (await import('./storage.js')).openStorage(process.env.QUIZ_DB) : null
 const rooms = new Map(storage?.load().map((record) => [record.room.code, record]) ?? [])
 app.get('/health', (_request, response) => response.json({ ok: true }))

@@ -1,6 +1,6 @@
 import React, { useId, useState } from 'react'
 import { ChevronDown, Upload } from 'lucide-react'
-import { avatars, isAvatarPhoto, maxAvatarPhotoLength, nameColors } from '../shared/game.js'
+import { avatars, isAvatarPhoto, isCustomNameColor, maxAvatarPhotoLength, nameColors } from '../shared/game.js'
 
 const photoFormats = ['image/jpeg', 'image/png', 'image/webp']
 
@@ -20,7 +20,7 @@ async function preparePhoto(file) {
     const top = (image.naturalHeight - crop) / 2
     for (const [size, quality] of [[96, .82], [80, .68], [64, .62], [48, .55]]) {
       canvas.width = canvas.height = size
-      context.fillStyle = '#21192c'
+      context.fillStyle = '#202020'
       context.fillRect(0, 0, size, size)
       context.drawImage(image, left, top, crop, crop, 0, 0, size, size)
       const photo = canvas.toDataURL('image/jpeg', quality)
@@ -38,9 +38,21 @@ export function PlayerAvatar({ player }) {
   </span>
 }
 
+function colorBackdrop(hex) {
+  const [red, green, blue] = hex.slice(1).match(/../g).map((part) => {
+    const channel = Number.parseInt(part, 16) / 255
+    return channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4
+  })
+  const luminance = .2126 * red + .7152 * green + .0722 * blue
+  if (luminance < .18) return '#fff'
+  if (luminance < .29) return '#000'
+}
+
 export function PlayerName({ player }) {
-  const color = nameColors.find(({ id }) => id === player.nameColor)?.hex
-  return <span className="player-name" style={color ? { color } : undefined}>{player.name}</span>
+  const custom = isCustomNameColor(player.nameColor)
+  const color = custom ? player.nameColor : nameColors.find(({ id }) => id === player.nameColor)?.hex
+  const backgroundColor = custom ? colorBackdrop(color) : undefined
+  return <span className={backgroundColor ? 'player-name player-name-backed' : 'player-name'} style={color ? { color, backgroundColor } : undefined}>{player.name}</span>
 }
 
 export function ProfileAppearance({ profile, setProfile, photoBusy, setPhotoBusy }) {
@@ -48,6 +60,8 @@ export function ProfileAppearance({ profile, setProfile, photoBusy, setPhotoBusy
   const colorGroup = useId()
   const [error, setError] = useState('')
   const change = (options) => setProfile((current) => ({ ...current, ...options }))
+  const customColor = isCustomNameColor(profile.nameColor)
+  const pickerColor = customColor ? profile.nameColor : nameColors.find(({ id }) => id === profile.nameColor)?.hex ?? nameColors[0].hex
 
   async function pickPhoto(event) {
     const file = event.currentTarget.files[0]
@@ -94,6 +108,10 @@ export function ProfileAppearance({ profile, setProfile, photoBusy, setPhotoBusy
             <span className="sr-only">{label}</span>
           </label>)}
         </div>
+        <label className="custom-name-color" data-selected={customColor}>
+          <span>Couleur personnalisée</span>
+          <input type="color" value={pickerColor} onChange={(event) => change({ nameColor: event.target.value })} />
+        </label>
       </fieldset>
     </div>
   </details>
