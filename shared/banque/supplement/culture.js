@@ -32,8 +32,8 @@ Qui a peint La Liberté guidant le peuple ?|Eugène Delacroix
 Qui a peint Un dimanche après-midi à l’Île de la Grande Jatte ?|Georges Seurat
 Qui a peint Le Déjeuner sur l’herbe exposé au musée d’Orsay ?|Édouard Manet
 Qui a peint La Persistance de la mémoire, avec ses montres molles ?|Salvador Dalí
-Quel autre tableau exposé au Louvre est attribué au peintre de La Joconde ?|La Vierge aux rochers|monalisa
-Quel tableau de Léonard de Vinci représente le dernier repas du Christ ?|La Cène|monalisa
+Quel autre tableau exposé au Louvre est attribué au peintre de La Joconde ?|La Vierge aux rochers
+Quel tableau de Léonard de Vinci représente le dernier repas du Christ ?|La Cène
 Quelle œuvre de Rembrandt représente un groupe de gardes civiques ?|La Ronde de nuit
 Quelle œuvre d’Edward Hopper montre quatre personnages dans un diner de nuit ?|Nighthawks
 Quel tableau de Caspar David Friedrich montre un homme de dos au-dessus du brouillard ?|Le Voyageur contemplant une mer de nuages
@@ -55,7 +55,7 @@ Quelle capitale abrite le quartier de La Boca ?|Buenos Aires
 Quelle capitale de l’Amérique du Nord est bâtie sur le site de Tenochtitlan ?|Mexico
 Quelle ville accueille le Parlement fédéral canadien sur la colline du Parlement ?|Ottawa
 Dans quelle capitale se trouve le musée du Louvre, où est exposé ce portrait ?|Paris|monalisa
-Quelle ville compte des thermes monumentaux associés à l’empereur Caracalla ?|Rome|colisee
+Quelle ville compte des thermes monumentaux associés à l’empereur Caracalla ?|Rome
 Quelle capitale possède le pont Charles et la cathédrale Saint-Guy ?|Prague
 Dans quelle ville se trouve le pont de la Constitution de 1812, inauguré en 2015 ?|Cadix
 Quelle capitale néo-zélandaise est surnommée « Windy Welly » ?|Wellington
@@ -97,9 +97,9 @@ Qui a écrit Notre-Dame de Paris, roman dont l’intrigue se déroule en 1482 ?|
 Qui a écrit le recueil Alcools ?|Guillaume Apollinaire
 Qui a écrit Les Fleurs du mal ?|Charles Baudelaire
 `, `
-Quel nom porte la passerelle piétonne sur la Seine entre le pont d’Iéna et le pont de l’Alma ?|La passerelle Debilly|tour-eiffel
-Quel est le nom de la grande esplanade qui s’étend entre la tour Eiffel et l’École militaire ?|Le Champ-de-Mars|tour-eiffel
-Quelle colline surplombe la rive opposée à la tour Eiffel ?|La colline de Chaillot|tour-eiffel
+Quel nom porte la passerelle piétonne sur la Seine entre le pont d’Iéna et le pont de l’Alma ?|La passerelle Debilly
+Quel est le nom de la grande esplanade qui s’étend entre la tour Eiffel et l’École militaire ?|Le Champ-de-Mars
+Quelle colline surplombe la rive opposée à la tour Eiffel ?|La colline de Chaillot
 Quel quartier de Paris abrite le Sacré-Cœur ?|Montmartre
 Quel est le nom moderne de l’ancien amphithéâtre Flavien ?|Le Colisée|colisee
 `, `

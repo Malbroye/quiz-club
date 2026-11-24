@@ -7,7 +7,7 @@ Quel format montre le visage de Drew Scanlon effectuant plusieurs clignements d�
 Quel format montre des images de cerveaux de plus en plus lumineux ?|Expanding Brain
 Quel format utilise une capture d’un garçon dans un bus regardant par une fenêtre une version plus pessimiste du paysage ?|Two Guys on a Bus
 Quel format réutilise une image d’Usain Bolt regardant sur le côté en plein sprint ?|Usain Bolt Smiling
-Quel format utilise un homme en manteau rouge refusant une chose et approuvant l’autre ?|Drakeposting|hotline-bling
+Quel format utilise un homme en manteau rouge refusant une chose et approuvant l’autre ?|Drakeposting
 Quel format montre une petite fille avec un sourire ambigu devant une maison en flammes ?|Disaster Girl
 Quel format reprend la tête d’un personnage de dessin animé qui fronce les sourcils devant une pensée absurde, souvent un dinosaure vert ?|Philosoraptor
 Quel format montre une enfant blonde lançant un regard sceptique quand on lui annonce une surprise ?|Side Eye Chloe
@@ -23,13 +23,13 @@ Quel format montre un rappeur pointant du doigt sa tempe en souriant ?|Roll Safe
 Quel format montre une photo d’homme devant un panneau « Change My Mind » ?|Change My Mind
 `, `
 Quel véritable groupe est derrière la chanson du clip utilisé pour le mème « The Fox » ?|Ylvis
-Quel rappeur américain a sorti le clip « Hotline Bling » d’où vient ce geste de rejet ?|Drake|hotline-bling
-Quel compositeur a publié le morceau sur lequel les participants au Harlem Shake dansent à l’arrivée du drop ?|Baauer|harlem-shake
+Quel rappeur américain a sorti le clip « Hotline Bling » d’où vient ce geste de rejet ?|Drake
+Quel compositeur a publié le morceau sur lequel les participants au Harlem Shake dansent à l’arrivée du drop ?|Baauer
 Quel artiste a chanté « Gangnam Style », l’origine de la danse du cavalier ?|Psy|gangnam-style
-Qui a chanté le morceau devenu une blague de redirection vers les années 1980 ?|Rick Astley|rickroll
-Quel chanteur a interprété « Together Forever », fréquemment cité comme autre morceau du visage du rickroll ?|Rick Astley|rickroll
-Quel rappeur faisait la chanson originale sur laquelle s’est greffé le remix country avec Billy Ray Cyrus ?|Lil Nas X|old-town-road
-Quel chanteur country a prêté sa voix au remix d’Old Town Road ?|Billy Ray Cyrus|old-town-road
+Qui a chanté le morceau devenu une blague de redirection vers les années 1980 ?|Rick Astley
+Quel chanteur a interprété « Together Forever », fréquemment cité comme autre morceau du visage du rickroll ?|Rick Astley
+Quel rappeur faisait la chanson originale sur laquelle s’est greffé le remix country avec Billy Ray Cyrus ?|Lil Nas X
+Quel chanteur country a prêté sa voix au remix d’Old Town Road ?|Billy Ray Cyrus
 Quels artistes sont crédités sur la version d’« Astronomia » associée aux porteurs de cercueil dansants ?|Vicetone et Tony Igy|coffin-dance
 Qui a interprété le titre « Everybody Wants to Rule the World », régulièrement utilisé dans des vidéos d’ambiance rétro ?|Tears for Fears
 Quel personnage musical de Pikotaro vend l’idée d’une fusion improbable entre des fruits et un stylo ?|Pen-Pineapple-Apple-Pen
@@ -48,7 +48,7 @@ Quel autre nom de shiba célèbre dans les mèmes désigne Balltze ?|Cheems
 Dans le mème Grumpy Cat, quel était le nom officiel de la chatte ?|Tardar Sauce|grumpy-cat
 De quelle couleur était surtout le pelage du chat Fatso dans la vidéo Keyboard Cat ?|Roux|keyboard-cat
 De quelle couleur est principalement le fond étoilé de l’animation originale de Nyan Cat ?|Bleu|nyan-cat
-Dans le Ice Bucket Challenge, avec quoi se mouille-t-on la tête ?|De l’eau glacée|ice-bucket-challenge
+Dans le Ice Bucket Challenge, avec quoi se mouille-t-on la tête ?|De l’eau glacée|ice-bucket-geste
 Quel objet les participants du Mannequin Challenge doivent-ils éviter de faire bouger pendant le tournage ?|Leur propre corps
 Quel animal donne son nom à la vidéo virale Dramatic Chipmunk, même si on y voit en fait un chien de prairie ?|Un tamia
 Quel est le nom du chat blanc de « Woman Yelling at a Cat » ?|Smudge

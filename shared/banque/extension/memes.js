@@ -6,7 +6,7 @@ Comment s’appelle cette créatrice devenue virale en parodiant « Boyfriend »
 Quel mème est associé au chien de cette photo ?|Doge|Cheems|Walter|Bonk Cat|kabosu
 Quel nom portait ce shiba inu japonais ?|Kabosu|Balltze|Maru|Hachikō|kabosu
 Quel piège Internet consiste à envoyer vers le clip dont cette image est tirée ?|Le rickroll|Le trollface|Le bait-and-switch de Nyan Cat|Le planking|rickroll
-Quel artiste apparaît dans ce clip devenu un classique du trolling ?|Rick Astley|George Michael|Phil Collins|Simon Le Bon|rickroll
+Quel artiste apparaît dans ce clip devenu un classique du trolling ?|Rick Astley|George Michael|Phil Collins|Simon Le Bon
 Quel mème montre ce chat pixelisé qui traverse l’espace ?|Nyan Cat|Keyboard Cat|Grumpy Cat|Bongo Cat|nyan-cat
 Quel aliment forme le corps de ce chat en pixel art ?|Une Pop-Tart|Un donut|Un brownie|Un sushi|nyan-cat
 Quel jouet est au centre des vidéos virales de 2017 où on le fait tourner entre deux doigts ?|Le hand spinner|Le yo-yo|Le Tamagotchi|Le Rubik’s Cube
@@ -18,12 +18,12 @@ Dans les légendes associées à Cheems, quel mot est souvent orthographié « c
 Quel mème popularisé en 2020 ces danseurs ont-ils inspiré ?|Coffin Dance|Harlem Shake|Mannequin Challenge|Running Man Challenge|coffin-dance
 Quel morceau électronique accompagne le plus souvent le montage viral issu de cette chorégraphie ?|Astronomia|Sandstorm|Animals|Levels|coffin-dance
 Que font les participants au Mannequin Challenge ?|Ils restent immobiles pendant le tournage|Ils changent de vêtements au montage|Ils dansent sous la pluie|Ils dessinent des vêtements
-Pour quelle cause l’Ice Bucket Challenge a-t-il massivement collecté des fonds en 2014 ?|La lutte contre la SLA|La préservation des pandas|La recherche sur la cataracte|La protection de la couche d’ozone|ice-bucket-challenge
+Pour quelle cause l’Ice Bucket Challenge a-t-il massivement collecté des fonds en 2014 ?|La lutte contre la SLA|La préservation des pandas|La recherche sur la cataracte|La protection de la couche d’ozone
 Que fait en général une personne pendant un « plank » du mème planking ?|Elle s’allonge raide, face vers le sol|Elle tourne sur elle-même|Elle marche à reculons|Elle mime un téléphone
-Quel producteur a sorti le morceau « Harlem Shake » utilisé dans ces vidéos ?|Baauer|Diplo|Skrillex|Calvin Harris|harlem-shake
-Quel rappeur a sorti le morceau « Old Town Road », popularisé entre autres par TikTok ?|Lil Nas X|Lil Wayne|Travis Scott|Post Malone|old-town-road
+Quel producteur a sorti le morceau « Harlem Shake » utilisé dans ces vidéos ?|Baauer|Diplo|Skrillex|Calvin Harris
+Quel rappeur a sorti le morceau « Old Town Road », popularisé entre autres par TikTok ?|Lil Nas X|Lil Wayne|Travis Scott|Post Malone
 
-Dans le format « Drake Hotline Bling », quel geste Drake fait-il dans la case de refus ?|Il détourne la tête et lève la main|Il se bouche les oreilles|Il montre ses chaussures|Il plisse les yeux vers une fenêtre|hotline-bling
+Dans le format « Drake Hotline Bling », quel geste Drake fait-il dans la case de refus ?|Il détourne la tête et lève la main|Il se bouche les oreilles|Il montre ses chaussures|Il plisse les yeux vers une fenêtre
 Dans le mème « Expanding Brain », quel organe devient de plus en plus lumineux ?|Le cerveau|Le cœur|Le foie|Les yeux
 Dans « Surprised Pikachu », quel personnage a la bouche ouverte de surprise ?|Pikachu|Rondoudou|Psykokwak|Salamèche
 Dans le mème « Roll Safe », où l’homme pointe-t-il son doigt ?|Vers sa tempe|Vers son poignet|Vers une porte|Vers son nez
@@ -77,6 +77,6 @@ Dans les mèmes « absolute cinema », quel geste est central dans l’image gé
 Quel couvre-chef évoque la silhouette bleue de Smurf Cat dans l’image devenue virale ?|Un chapeau de champignon|Un casque de moto|Une toque de cuisinier|Un sombrero
 Que dit souvent un internaute avec « canon event » en référence au film Spider-Man: Across the Spider-Verse ?|Qu’une étape paraît inévitable dans le parcours de quelqu’un|Qu’une caméra est trop chère|Qu’un tournoi a changé de date|Qu’un bruitage vient d’un canon
 Dans le jeu Wordle, combien de lettres compte le mot de la version originale ?|Cinq|Quatre|Six|Sept
-Quel titre viral est associé au clip dont cette vignette est tirée ?|Gangnam Style|Gentleman|Dynamite|Despacito|gangnam-style
+Quel titre viral est associé au clip dont cette vignette est tirée ?|Gangnam Style|Gentleman|Dynamite|Despacito
 Dans la danse de ce clip, quel animal les mouvements de cavalier évoquent-ils ?|Un cheval|Un kangourou|Un coq|Un ours|gangnam-style
 `)

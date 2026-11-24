@@ -69,7 +69,7 @@ Si Socket.IO manque et que les autres dépendances sont déjà installées, le s
 
 Le [guide des médias](public/media/README.md) indique les dossiers par sujet. Un même lot d’images peut illustrer plusieurs questions, par exemple avec `media: 'stranger-things'` dans [shared/mes-questions.js](shared/mes-questions.js).
 
-Pour ajouter des questions en lot, ouvre le fichier du thème dans [shared/banque](shared/banque). Ajoute les lignes à la fin du fichier pour garder les identifiants existants. Chaque ligne contient la question, la bonne réponse, puis trois distracteurs. Une source et une référence de média peuvent suivre. Le jeu mélange les choix et affiche les nouveaux compteurs au prochain chargement. Le lot [Stranger Things](shared/banque/cinema/stranger-things.js) est relié à ses images une seule fois via `subjectPacks` dans `shared/banque/index.js`. Toute nouvelle question ajoutée à ce lot hérite des images.
+Pour ajouter des questions en lot, ouvre le fichier du thème dans [shared/banque](shared/banque). Ajoute les lignes à la fin du fichier pour garder les identifiants existants. Chaque ligne contient la question, la bonne réponse, puis trois distracteurs. Une source et une référence de média peuvent suivre. Le jeu mélange les choix et affiche les nouveaux compteurs au prochain chargement. Le lot [Stranger Things](shared/banque/cinema/stranger-things.js) montre comment associer un photogramme précis à une question qui porte sur ce qu’on y voit.
 
 Depuis l’accueil, clique sur **Quiz illustré** pour jouer uniquement avec des images et des vidéos. L’ordre varie à chaque partie. Tu peux aussi choisir un thème comme les mèmes ou le cinéma dans **Jouer par thème**.
 

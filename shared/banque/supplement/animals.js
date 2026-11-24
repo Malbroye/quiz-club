@@ -6,10 +6,10 @@ Quel singe se reconnaît au long nez qui donne son nom à l’espèce ?|Nasique
 Quel primate malgache utilise un doigt particulièrement long pour extraire des larves du bois ?|Aye-aye
 Quel félin d’Amérique porte aussi le nom de cougar ?|Puma
 Quel félin d’Amérique possède des rosettes qui peuvent contenir un petit point noir ?|Jaguar
-Chez quel félin de savane les jeunes portent-ils un manteau gris clair sur le dos ?|Guépard|guepard
+Chez quel félin de savane les jeunes portent-ils un manteau gris clair sur le dos ?|Guépard
 Quel grand félin vit notamment dans les hautes montagnes de l’Altaï et de l’Himalaya ?|Panthère des neiges
 Quel petit félin à grandes oreilles est parfois surnommé « lynx du désert » malgré son appartenance à un autre genre ?|Caracal
-Quel animal dispose de molaires qui se renouvellent en migrant de l’arrière vers l’avant de la mâchoire ?|Éléphant|elephant
+Quel animal dispose de molaires qui se renouvellent en migrant de l’arrière vers l’avant de la mâchoire ?|Éléphant
 Quel grand herbivore d’Afrique a des narines placées haut sur le museau pour respirer dans l’eau ?|Hippopotame
 Quel mammifère nocturne d’Amérique du Sud porte une armure faite de plaques osseuses ?|Tatou
 Quel mammifère possède des écailles de kératine et se met en boule quand il est menacé ?|Pangolin
@@ -66,7 +66,7 @@ Quel animal construit des colonies faites de polypes pour former de grands réci
 `, `
 Quel membre du corps du guépard l’aide à garder l’équilibre en changeant de direction en pleine course ?|La queue|guepard
 Quelle partie du corps de l’éléphant lui sert à aspirer l’eau pour ensuite la verser dans sa bouche ?|La trompe|elephant
-Chez le panda roux, quelle partie du squelette s’est modifiée pour former un faux pouce ?|Un os du poignet|panda-roux
+Chez le panda roux, quelle partie du squelette s’est modifiée pour former un faux pouce ?|Un os du poignet
 Quelle partie du cheval se trouve entre les deux oreilles et se prolonge sur le front ?|Le toupet
 Quels organes les insectes utilisent-ils pour capter des odeurs à distance ?|Les antennes
 Chez les poissons osseux, que protège l’opercule de chaque côté de la tête ?|Les branchies
@@ -81,9 +81,9 @@ Quel organe les chauves-souris vampires utilisent-elles notamment pour repérer 
 Quel organe du gecko peut se détacher pour détourner l’attention d’un prédateur ?|La queue
 Qu’est-ce qui pousse en continu chez le castor et s’use lorsqu’il ronge du bois ?|Les incisives
 Quelle structure du cygne protège ses yeux sous l’eau ?|La membrane nictitante
-Que trouve-t-on au bout de chaque patte d’un guépard pour améliorer son accroche ?|Des griffes peu rétractiles|guepard
-Quelle partie du crâne abrite les défenses de l’éléphant à leur base ?|La mâchoire supérieure|elephant
-Que plaque sur lui le panda roux quand il se roule en boule pour garder sa chaleur ?|Sa queue touffue|panda-roux
+Que trouve-t-on au bout de chaque patte d’un guépard pour améliorer son accroche ?|Des griffes peu rétractiles
+Quelle partie du crâne abrite les défenses de l’éléphant à leur base ?|La mâchoire supérieure
+Que plaque sur lui le panda roux quand il se roule en boule pour garder sa chaleur ?|Sa queue touffue
 `, `
 Lequel de ces animaux est particulièrement adapté aux forêts de conifères de l’Himalaya oriental et du sud-ouest de la Chine ?|Le panda roux|panda-roux
 Quel félin a des taches pleines, à la différence des rosettes généralement visibles sur les léopards ?|Le guépard|guepard

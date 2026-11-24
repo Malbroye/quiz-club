@@ -20,7 +20,7 @@ Tu peux remplacer un seul fichier d’un lot. Pour vérifier un fichier directem
 
 ## Réutiliser les images d’un sujet
 
-Dans une nouvelle question de `shared/mes-questions.js`, ajoute simplement `media: 'stranger-things'`. Le quiz choisit une photo dans le lot existant. Pour afficher le lot complet sur une question, écris `media: { ref: 'stranger-things', gallery: true }`.
+Dans une nouvelle question de `shared/mes-questions.js`, sélectionne la photo qui correspond à l’indice. Par exemple, `media: { ref: 'stranger-things', frame: 1 }` utilise la deuxième photo du lot. Les indices commencent à zéro. Pour afficher le lot complet sur une question, écris `media: { ref: 'stranger-things', gallery: true }`.
 
 Les sujets disponibles sont `stranger-things`, `doge`, `grumpy-cat`, `keyboard-cat`, `nyan-cat`, `retour-vers-le-futur-2` et `voyage-dans-la-lune`. Pour créer ton sujet, ajoute ses images une seule fois dans `customMediaLibrary`. Dans `file`, indique le chemin sous `public/media/`, par exemple `cinema/inception/affiche.jpg`.
 
@@ -90,7 +90,7 @@ Pour tes nouvelles images, `.jpg`, `.png` et `.webp` conviennent. Le nom dans `f
 
 ## Réutiliser un extrait ou un son
 
-Les questions avec des extraits et des sons sont dans [shared/banque/media-questions.js](../../shared/banque/media-questions.js). Dans `media`, une vidéo ou un son sert d’indice. Dans `followUp`, la vidéo apparaît après la réponse.
+Les questions avec des extraits et des sons sont dans [shared/banque/media-questions.js](../../shared/banque/media-questions.js). Dans `media`, une vidéo ou un son sert d’indice. Dans `followUp`, la vidéo est accessible après la réponse et remplace l’indice à l’écran quand le joueur la sélectionne.
 
 Pour un fichier local, indique par exemple `type: 'video'` et `file: 'cinema/mon-film/extrait.mp4'`, ou `type: 'audio'` et `file: 'culture/mon-sujet/indice.wav'`. Garde les fichiers sous `public/media/`, dans le dossier du sujet. Une vidéo en ligne peut utiliser `url` pour un fichier lisible directement ou `id` pour le lecteur YouTube. Donne aussi un `caption` et, pour une vidéo externe, son `source`. Le champ `description` permet d’ajouter un indice écrit au lecteur audio.
 

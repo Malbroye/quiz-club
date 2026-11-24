@@ -7,7 +7,7 @@ const commonsPhotos = [
   ["animals","panda-roux","Red_Panda_(24986761703).jpg","e6","Petit mammifère arboricole au pelage roux.","Mathias Appel","publicdomain/zero/1.0"],
   ["sports","lebron","LeBron_James_dunks.jpg","ac","Joueur effectuant un dunk.","Tim Shelby","by/2.0"],
   ["sports","usain-bolt","Usain_Bolt_2012_Olympics_1_cropped.jpg","ca","Sprinteur en tenue olympique.","Nick Webb","by/2.0"],
-  ["sports","nadal","Nadal_2017.jpg","81","Joueur de tennis en compétition.","Photographe Flickr 43555660@N00","by-sa/2.0"],
+  ["sports","nadal","Nadal_2017.jpg","81","Joueur de tennis en tee-shirt bleu, à droite.","Photographe Flickr 43555660@N00","by-sa/2.0"],
   ["twitch","ninja","Ninja2019screenshot.jpg","76","Créateur de contenu lors d’un événement.","Tyreek Hill","by/3.0"],
   ["twitch","ludwig","Ludwig_2021.jpg","98","Diffuseur photographié lors du ShitCamp.","Esfand","by/3.0"],
   ["twitch","pokimane","Pokimane_at_Twitchcon_Berlin_2019.png","8d","Streameuse lors d’une convention à Berlin.","SlikeR","by/3.0"],
@@ -27,7 +27,6 @@ const commonsPhotos = [
   ["twitch","gotaga","Gotaga_2026.jpg","3e","Portrait d’un joueur et streameur français.","Zack Nani","by/4.0"],
   ["youtube","squeezie","Squeezie.png","f0","Vidéaste français photographié en 2015.","SnakseDeutsche","by/4.0"],
   ["youtube","inoxtag","Inoxtag.png","13","Portrait d’un vidéaste français.","Inoxtag","by-sa/4.0"],
-  ["youtube","cyprien","Minori-cyprien_Iov.jpg","7d","Vidéaste français lors d’une rencontre.","ARIELdu18","by-sa/4.0"],
   ["youtube","joueur-du-grenier","Joueur_du_Grenier.jpg","6e","Vidéaste en dédicace à Toulouse.","doodoms","by-sa/2.0"],
   ["cinema","nosferatu","Nosferatu.jpg","23","Photogramme en noir et blanc d’un vampire.","Prana-Film","publicdomain/mark/1.0"],
   ["cinema","nuit-des-morts-vivants","Duane_Jones_as_Ben_in_Night_of_the_Living_Dead_bw.jpg","71","Photogramme en noir et blanc montrant un personnage nommé Ben.","George A. Romero",null],
@@ -49,34 +48,23 @@ const commonsImages = commonsPhotos.map(([category, key, name, hash, alt, credit
   }]
 })
 
-const videoStills = [
-  ['cinema', 'matrix', 'D4eJx-0g3Do', 'Deux gélules, l’une rouge et l’autre bleue.', 'Warner Bros.'],
-  ['cinema', 'jurassic-park', '_jKEqDKpJLw', 'Une empreinte de dinosaure au-dessus d’une île.', 'Amblin'],
-  ['cinema', 'avatar', '5PSNL1qE6VY', 'Des îles flottantes sur un ciel nocturne.', '20th Century Fox'],
-  ['cinema', 'dark-knight', '_PZpmTj1Q8Q', 'Une carte à jouer devant les silhouettes d’une ville.', 'Warner Bros. Rewind'],
-  ['cinema', 'severance', '_UXKlYvLGJY', 'Deux ascenseurs au fond d’un couloir de bureaux.', 'Apple TV'],
-  ['cinema', 'arcane', '4Ps6nV4wiCE', 'Illustration de deux quartiers séparés par un pont.', 'Riot Games'],
-  ['cinema', 'dune', 'rPqTIibDpq4', 'Une silhouette au milieu de grandes dunes orange.', 'Warner Bros.'],
-  ['memes', 'hotline-bling', 'uxpDa-c-4Mc', 'Une silhouette gesticule dans un cube éclairé en rose.', 'Drake'],
-  ['memes', 'harlem-shake', '384IUU43bfQ', 'Un danseur seul puis un groupe en mouvement.', 'TheSunnyCoastSkate'],
-  ['memes', 'ice-bucket-challenge', 'XS6ysDFTbLU', 'Un seau verse de l’eau et des glaçons.', 'Bill Gates'],
-  ['memes', 'old-town-road', 'w2Ov5jzm3j8', 'Un chapeau de cow-boy sur un décor de western.', 'Lil Nas X'],
-].map(([category, key, videoId, alt, credit]) => [key, {
-  type: 'image', stage: 'question', file: category + '/' + key + '/indice.jpg',
-  fallbackFile: category + '/' + key + '/illustration.svg',
-  url: 'https://i.ytimg.com/vi/' + videoId + '/hqdefault.jpg',
-  source: 'https://www.youtube.com/watch?v=' + videoId, alt: 'Vignette de la vidéo originale.', fallbackAlt: alt, credit,
-}])
-
-export const subjectVideos = Object.fromEntries(videoStills.map(([key, image]) => [key, {
-  type: 'video', stage: 'reveal', id: new URL(image.source).searchParams.get('v'),
-  caption: image.file.startsWith('cinema/') ? 'Voir la bande-annonce' : 'Lire la vidéo originale',
-  source: image.source,
-}]))
-
 export const expansionImages = Object.fromEntries([
   ...commonsImages,
-  ...videoStills,
+  ['cyprien', {
+    type: 'image', stage: 'question', file: 'youtube/cyprien/portrait-2022.jpg',
+    url: 'https://upload.wikimedia.org/wikipedia/commons/0/0f/Cyprien_en_2022.jpg',
+    source: 'https://commons.wikimedia.org/wiki/File:Cyprien_en_2022.jpg',
+    alt: 'Portrait d’un vidéaste français pendant un entretien en 2022.',
+    credit: 'ZACK', license: 'https://creativecommons.org/licenses/by/3.0/',
+  }],
+  ['matrix-pilules', {
+    type: 'image', stage: 'question', file: 'cinema/matrix/illustration.svg',
+    alt: 'Deux gélules stylisées, l’une rouge et l’autre bleue.',
+  }],
+  ['ice-bucket-geste', {
+    type: 'image', stage: 'question', file: 'memes/ice-bucket-challenge/illustration.svg',
+    alt: 'Un seau incliné verse de l’eau et des glaçons.',
+  }],
   ['rickroll', {
     type: 'image', stage: 'question', file: 'memes/rickroll/indice.jpg',
     url: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',

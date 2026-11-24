@@ -20,7 +20,7 @@ Quel pays de rugby est surnommé les Pumas ?|Argentine
 Quel pays a remporté la Coupe du monde féminine de rugby 2021, jouée en 2022 ?|Nouvelle-Zélande
 Quel pays a remporté le premier tournoi olympique de rugby à sept masculin, à Rio ?|Fidji
 Quel pays représentait Usain Bolt sur les pistes internationales ?|Jamaïque|usain-bolt
-Quel pays Rafael Nadal a-t-il représenté en Coupe Davis ?|Espagne|nadal
+Quel pays Rafael Nadal a-t-il représenté en Coupe Davis ?|Espagne
 `, `
 Quel club a remporté la Ligue des champions masculine de football en 1993 ?|Olympique de Marseille
 Quel club a remporté la Ligue des champions masculine de football en 2004, sous José Mourinho ?|FC Porto
@@ -33,9 +33,9 @@ Quel club a gagné la finale de C1 de 1995 avec un but de Patrick Kluivert ?|Aja
 Quel club a subi sa première défaite de la saison toutes compétitions en finale de Ligue Europa 2024 ?|Bayer Leverkusen
 Quel club a remporté l’Europa League masculine de football en 2024 ?|Atalanta
 `, `
-Quelle équipe a recruté LeBron James après ses années à Miami en 2014 ?|Cleveland Cavaliers|lebron
-Dans quelle équipe LeBron James a-t-il remporté le titre NBA 2020 ?|Los Angeles Lakers|lebron
-Quelle équipe a battu celle de LeBron James en finale NBA 2011 ?|Dallas Mavericks|lebron
+Quelle équipe a recruté LeBron James après ses années à Miami en 2014 ?|Cleveland Cavaliers
+Dans quelle équipe LeBron James a-t-il remporté le titre NBA 2020 ?|Los Angeles Lakers
+Quelle équipe a battu celle de LeBron James en finale NBA 2011 ?|Dallas Mavericks
 Quelle équipe a remporté la finale NBA 2004 face aux Lakers ?|Detroit Pistons
 Quelle équipe emmenée par Giannis Antetokounmpo a remporté la NBA en 2021 ?|Milwaukee Bucks
 Avec quelle équipe Stephen Curry a-t-il remporté son premier titre NBA en 2015 ?|Golden State Warriors
@@ -54,10 +54,10 @@ Quelle ville norvégienne a accueilli les JO d’hiver de 1994 ?|Lillehammer
 Dans quelle ville française les JO d’hiver de 1968 ont-ils été organisés ?|Grenoble
 Dans quelle ville ont eu lieu les JO d’hiver de 2010 ?|Vancouver
 Quelle ville alpine italienne a accueilli les JO d’hiver de 2006 ?|Turin
-Dans quelle ville Usain Bolt a-t-il remporté ses premiers titres olympiques en 2008 ?|Pékin|usain-bolt
-Dans quelle ville a eu lieu la dernière finale olympique individuelle d’Usain Bolt au 200 m ?|Rio de Janeiro|usain-bolt
+Dans quelle ville Usain Bolt a-t-il remporté ses premiers titres olympiques en 2008 ?|Pékin
+Dans quelle ville a eu lieu la dernière finale olympique individuelle d’Usain Bolt au 200 m ?|Rio de Janeiro
 Dans quelle ville Bolt a-t-il remporté son deuxième titre olympique individuel au 100 m en 2012 ?|Londres|usain-bolt
-Dans quelle ville Rafael Nadal a-t-il gagné l’or olympique en simple ?|Pékin|nadal
+Dans quelle ville Rafael Nadal a-t-il gagné l’or olympique en simple ?|Pékin
 Quelle ville accueille l’US Open de tennis ?|New York
 Dans quelle ville se déroule l’Open d’Australie de tennis ?|Melbourne
 Dans quelle ville française se termine traditionnellement la course cycliste Paris-Roubaix ?|Roubaix
@@ -66,8 +66,8 @@ Dans quelle ville se trouve le stade de Twickenham ?|Londres
 Dans quelle ville se trouve le stade de San Siro ?|Milan
 `, `
 Quel joueur suisse a remporté huit titres en simple à Wimbledon ?|Roger Federer
-Quel Chilien Rafael Nadal a-t-il battu en finale olympique à Pékin en 2008 ?|Fernando González|nadal
-Quel Autrichien Rafael Nadal a-t-il battu en finale de Roland-Garros en 2018 puis en 2019 ?|Dominic Thiem|nadal
+Quel Chilien Rafael Nadal a-t-il battu en finale olympique à Pékin en 2008 ?|Fernando González
+Quel Autrichien Rafael Nadal a-t-il battu en finale de Roland-Garros en 2018 puis en 2019 ?|Dominic Thiem
 Quel Suisse a remporté Roland-Garros en 2015 en battant Novak Djokovic en finale ?|Stan Wawrinka
 Quel joueur français a gagné Roland-Garros en simple messieurs en 1983 ?|Yannick Noah
 Quel joueur a remporté l’or en simple messieurs aux Jeux de Paris 2024 ?|Novak Djokovic
@@ -106,5 +106,5 @@ Dans quel sport peut-on terminer sur un double, à partir de 501 points ?|Fléch
 Dans quel sport applique-t-on l’interdiction du marcher avec le ballon, en pouvant faire trois pas sans dribbler ?|Handball
 Dans quel sport le libero porte-t-il un maillot de couleur différente ?|Volley-ball
 Dans quel sport les épreuves de slalom utilisent-elles des portes rouges et vertes sur l’eau ?|Canoë-kayak
-Quel sport pratique l’équipe où LeBron James a porté le numéro 6 à Miami ?|Basket-ball|lebron
+Quel sport pratique l’équipe où LeBron James a porté le numéro 6 à Miami ?|Basket-ball
 `)

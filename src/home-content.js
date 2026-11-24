@@ -109,7 +109,7 @@ export const illustratedCovers = [
   'cinema/retour-vers-le-futur-2/hoverboard.jpg',
   'cinema/voyage-dans-la-lune/voyage-lune.jpg',
   'cinema/dark-vador/indice.jpg',
-  'cinema/jurassic-park/illustration.svg',
+  'cinema/nosferatu/indice.jpg',
   'culture/tour-eiffel/indice.jpg',
   'culture/monalisa/indice.jpg',
   'culture/colisee/indice.jpg',

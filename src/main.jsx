@@ -21,6 +21,7 @@ const categoryIcons = { brain: Brain, paw: PawPrint, trophy: Trophy, twitch: Twi
 const jokerIcons = { half: Sparkles, poll: BarChart3, double: Swords, time: TimerReset }
 const letters = ['A', 'B', 'C', 'D']
 const score = new Intl.NumberFormat('fr-FR')
+const responseSeconds = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const historyKey = 'qc-question-history'
 const speechKey = 'qc-speech'
 const codeFromUrl = normalizeRoomCode(new URLSearchParams(location.search).get('room'))
@@ -498,7 +499,7 @@ function ImageReference({ image, multiple, reveal }) {
   const zoomButton = useRef(null)
   const localPaths = localMediaPaths(image.file)
   const fallbacks = localMediaPaths(image.fallbackFile)
-  const src = [...localPaths, ...fallbacks, image.url].filter(Boolean)[attempt]
+  const src = [...localPaths, image.url, ...fallbacks].filter(Boolean)[attempt]
   const illustration = fallbacks.includes(src)
   const alt = illustration ? image.fallbackAlt ?? image.alt : image.alt
   function closeImage() {
@@ -539,20 +540,18 @@ function LocalMedia({ media, reveal }) {
   const audio = media.type === 'audio'
   const handleError = () => setAttempt((value) => value + 1)
   const label = reveal ? media.caption : audio ? 'Indice sonore' : 'Extrait vidéo'
-  return <>
-    {media.preview && <QuestionImages media={media.preview} reveal={reveal} />}
-    <figure className={'question-media ' + (audio ? 'audio-clip' : 'visual-clip')}>
-      {!src ? <div className="media-unavailable">{audio ? 'Indice sonore indisponible.' : 'Vidéo indisponible.'}</div>
-        : audio ? <audio key={src} controls preload="metadata" aria-label={label} src={src} onError={handleError} />
-        : <video key={src} controls autoPlay={!reveal} muted={!reveal} playsInline preload={reveal ? 'none' : 'auto'} aria-label={label} poster={media.poster ?? localMediaPaths(media.preview?.file)[0]} src={src} onError={handleError} />}
-      {audio && media.description && <figcaption><details><summary>Indice écrit</summary>{media.description}</details></figcaption>}
-      {reveal && (media.credit || media.source) && <figcaption>
-        {media.credit && <span>{media.credit}</span>}
-        {media.source && <a href={media.source} target="_blank" rel="noreferrer">{media.caption} <ArrowUpRight size={13} /></a>}
-        {media.license && <a href={media.license} target="_blank" rel="noreferrer">Licence</a>}
-      </figcaption>}
-    </figure>
-  </>
+  if (!src && media.preview) return <QuestionImages media={media.preview} reveal={reveal} />
+  return <figure className={'question-media ' + (audio ? 'audio-clip' : 'visual-clip')}>
+    {!src ? <div className="media-unavailable">{audio ? 'Indice sonore indisponible.' : 'Vidéo indisponible.'}</div>
+      : audio ? <audio key={src} controls preload="metadata" aria-label={label} src={src} onError={handleError} />
+      : <video key={src} controls autoPlay={!reveal} muted={!reveal} playsInline preload={reveal ? 'none' : 'auto'} aria-label={label} poster={media.poster ?? localMediaPaths(media.preview?.file)[0]} src={src} onError={handleError} />}
+    {audio && media.description && <figcaption><details><summary>Indice écrit</summary>{media.description}</details></figcaption>}
+    {reveal && (media.credit || media.source) && <figcaption>
+      {media.credit && <span>{media.credit}</span>}
+      {media.source && <a href={media.source} target="_blank" rel="noreferrer">{media.caption} <ArrowUpRight size={13} /></a>}
+      {media.license && <a href={media.license} target="_blank" rel="noreferrer">Licence</a>}
+    </figcaption>}
+  </figure>
 }
 
 function QuestionMedia({ media, reveal = false }) {
@@ -577,6 +576,18 @@ function QuestionMedia({ media, reveal = false }) {
     </div>
     {!playback && media.preview && <QuestionImages media={media.preview} reveal={reveal} />}
   </div>
+}
+
+function RevealMedia({ media, followUp }) {
+  const [showFollowUp, setShowFollowUp] = useState(false)
+  if (!media && !followUp) return null
+  const selected = showFollowUp ? followUp : media ?? followUp
+  return <>
+    {media && followUp && <button className="button secondary small reveal-media-switch" type="button" onClick={() => setShowFollowUp(!showFollowUp)}>
+      {showFollowUp ? <Image size={16} /> : <Play size={16} />}{showFollowUp ? 'Revoir l’indice' : 'Voir la vidéo liée'}
+    </button>}
+    <QuestionMedia key={showFollowUp ? 'follow-up' : 'clue'} media={selected} reveal />
+  </>
 }
 
 function useClock(personal, clockOffset) {
@@ -654,6 +665,19 @@ function ResponseChoices({ selected, question, answer }) {
   })}</ul>
 }
 
+function ResponseScore({ breakdown, speedEnabled, showTotal = false }) {
+  if (!breakdown) return null
+  const { points, basePoints, speedPoints, streakPoints, responseTime } = breakdown
+  if (responseTime === null && !points) return null
+  return <p className="response-score">
+    {showTotal && <b>{score.format(points)} pts</b>}
+    {responseTime !== null && <span>{responseSeconds.format(responseTime / 1000)} s</span>}
+    {basePoints > 0 && <span>{score.format(basePoints)} base</span>}
+    {speedEnabled && basePoints > 0 && <span>+{score.format(speedPoints)} vitesse</span>}
+    {streakPoints > 0 && <span>+{score.format(streakPoints)} série</span>}
+  </p>
+}
+
 function Reveal({ state, action, clockOffset, reconnecting, error }) {
   const { result, question, personal } = state
   const host = state.hostId === state.selfId
@@ -674,7 +698,6 @@ function Reveal({ state, action, clockOffset, reconnecting, error }) {
       </div>
       <div className="reveal-points">
         <strong>{personal.points ? '+' : ''}{score.format(personal.points)} pts</strong>
-        {personal.speedPoints > 0 && <span>dont +{score.format(personal.speedPoints)} de rapidité</span>}
       </div>
     </header>
     <div className="lobby-grid result-grid">
@@ -685,11 +708,16 @@ function Reveal({ state, action, clockOffset, reconnecting, error }) {
         <div className="reveal-responses">
           <h3 className="field-label">{personal.choices.length > 1 ? 'Tes réponses' : 'Ta réponse'}</h3>
           <ResponseChoices selected={personal.choices} question={question} answer={result.answer} />
+          <ResponseScore breakdown={result.scores?.[state.selfId]} speedEnabled={state.settings.speedBonus !== false} />
           {others.length > 0 && <>
             <h3 className="field-label">{state.local ? 'Réponses des bots' : 'Réponses des autres joueurs'}</h3>
             <ul className="player-list">{others.map((player) => <li className="reveal-player" key={player.id}>
               <PlayerAvatar player={player} />
-              <div><strong><PlayerName player={player} /></strong><ResponseChoices selected={result.responses[player.id]} question={question} answer={result.answer} /></div>
+              <div>
+                <strong><PlayerName player={player} /></strong>
+                <ResponseChoices selected={result.responses[player.id]} question={question} answer={result.answer} />
+                <ResponseScore breakdown={result.scores?.[player.id]} speedEnabled={state.settings.speedBonus !== false} showTotal />
+              </div>
             </li>)}</ul>
           </>}
         </div>
@@ -697,8 +725,7 @@ function Reveal({ state, action, clockOffset, reconnecting, error }) {
         {host ? <button className="button primary w-full justify-center mb-5" disabled={seconds > 0 || reconnecting} onClick={() => action({ type: 'next', round: state.index })}>
           {last ? 'Voir le podium' : 'Question suivante'}{seconds > 0 && ` (${seconds} s)`} <ChevronRight size={21} />
         </button> : <p className="wait-note mb-4"><span /> En attente de l’hôte.</p>}
-        {question.media && <QuestionMedia key={question.id} media={question.media} reveal />}
-        {question.followUp && <QuestionMedia key={question.id + '-video'} media={question.followUp} reveal />}
+        <RevealMedia key={question.id} media={question.media} followUp={question.followUp} />
         {question.source && <a className="question-source" href={question.source} target="_blank" rel="noreferrer">Source de la réponse <ArrowUpRight size={13} /></a>}
         <h3 className="field-label">Répartition des votes · {result.voters}</h3><VoteBars percentages={result.percentages} choices={question.choices} correct={result.answer} />
       </section>

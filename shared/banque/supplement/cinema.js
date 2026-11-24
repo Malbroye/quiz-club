@@ -1,20 +1,20 @@
 import { extraRows } from './format.js'
 
 export default extraRows(`
-Quel personnage du premier Matrix travaille sous le nom de Thomas Anderson ?|Neo|matrix
-Quelle combattante révèle à Neo que c’est elle qui a piraté la base du fisc, au début du premier Matrix ?|Trinity|matrix
-Quel personnage tient le rôle de grand garde-chasse à Poudlard dans les films Harry Potter ?|Hagrid|harry-potter
-Quel personnage est révélé comme le Prisonnier d’Azkaban dans le troisième film Harry Potter ?|Sirius Black|harry-potter
-Quel personnage admet être le père de Luke à la fin de leur duel dans la Cité des Nuages ?|Dark Vador|dark-vador
-Quel personnage est congelé dans la carbonite sur ordre de Dark Vador dans L’Empire contre-attaque ?|Han Solo|dark-vador
-Quel personnage de Jurassic Park a financé le parc construit sur une île au large du Costa Rica ?|John Hammond|jurassic-park
-Quel mathématicien de Jurassic Park explique la théorie du chaos dans une voiture ?|Ian Malcolm|jurassic-park
-Quel humain apprend à monter un ikran dans le premier Avatar sous les traits de Sam Worthington ?|Jake Sully|avatar
-Quelle scientifique de l’équipe est incarnée par Sigourney Weaver dans le premier Avatar ?|Grace Augustine|avatar
-Quel personnage d’Arcane portait le surnom de Powder enfant ?|Jinx|arcane
-Quel personnage d’Arcane mène une enquête dans la ville basse avec Vi d’abord sortie de prison ?|Caitlyn Kiramman|arcane
-Quel personnage de Stranger Things est le frère aîné de Will ?|Jonathan Byers|stranger-things
-Quel personnage de Stranger Things est joué par Sadie Sink ?|Max Mayfield|stranger-things
+Quel personnage du premier Matrix travaille sous le nom de Thomas Anderson ?|Neo
+Quelle combattante révèle à Neo que c’est elle qui a piraté la base du fisc, au début du premier Matrix ?|Trinity
+Quel personnage tient le rôle de grand garde-chasse à Poudlard dans les films Harry Potter ?|Hagrid
+Quel personnage est révélé comme le Prisonnier d’Azkaban dans le troisième film Harry Potter ?|Sirius Black
+Quel personnage admet être le père de Luke à la fin de leur duel dans la Cité des Nuages ?|Dark Vador
+Quel personnage est congelé dans la carbonite sur ordre de Dark Vador dans L’Empire contre-attaque ?|Han Solo
+Quel personnage de Jurassic Park a financé le parc construit sur une île au large du Costa Rica ?|John Hammond
+Quel mathématicien de Jurassic Park explique la théorie du chaos dans une voiture ?|Ian Malcolm
+Quel humain apprend à monter un ikran dans le premier Avatar sous les traits de Sam Worthington ?|Jake Sully
+Quelle scientifique de l’équipe est incarnée par Sigourney Weaver dans le premier Avatar ?|Grace Augustine
+Quel personnage d’Arcane portait le surnom de Powder enfant ?|Jinx
+Quel personnage d’Arcane mène une enquête dans la ville basse avec Vi d’abord sortie de prison ?|Caitlyn Kiramman
+Quel personnage de Stranger Things est le frère aîné de Will ?|Jonathan Byers
+Quel personnage de Stranger Things est joué par Sadie Sink ?|Max Mayfield
 Quel personnage de Blade Runner mène l’enquête principale en traquant des réplicants ?|Rick Deckard
 Quel Hobbit reçoit l’Anneau de son oncle Bilbon dans Le Seigneur des anneaux ?|Frodon Sacquet
 Quel personnage de Gladiator se bat dans l’arène pour se venger de Commode ?|Maximus

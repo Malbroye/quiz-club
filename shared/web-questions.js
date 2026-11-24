@@ -28,7 +28,7 @@ export const mediaImages = {
   hover: {
     type: 'image', stage: 'question',
     url: 'https://upload.wikimedia.org/wikipedia/commons/4/4b/Prop_Department_-_Back_To_The_Future_Hoverboard_%282561987496%29.jpg',
-    file: 'cinema/retour-vers-le-futur-2/hoverboard.jpg', alt: 'Une planche rose du film Retour vers le futur II exposée en vitrine.',
+    file: 'cinema/retour-vers-le-futur-2/hoverboard.jpg', alt: 'Le dessous d’une planche volante de Retour vers le futur II, avec trois tubes à l’arrière.',
     credit: 'Rob Young · CC BY 2.0',
     source: commons + 'Prop_Department_-_Back_To_The_Future_Hoverboard_(2561987496).jpg', license: 'https://creativecommons.org/licenses/by/2.0/',
   },
@@ -89,7 +89,6 @@ function video(id, caption, segment, preview) {
 export const existingMedia = {
   'memes-5': video('dQw4w9WgXcQ', 'Le clip officiel de Rick Astley'),
   'youtube-1': video('jNQXAC9IVRw', 'Me at the zoo, la première vidéo YouTube'),
-  'cinema-4': 'stranger-things',
   'cinema-8': 'retour-vers-le-futur-2',
 }
 
@@ -143,11 +142,11 @@ export const webQuestions = {
   cinema: [
     ['Quel film a remporté l’Oscar du meilleur film en 1998 ?', ['Titanic', 'Will Hunting', 'L.A. Confidential', 'Pour le pire et pour le meilleur'], 'https://www.oscars.org/oscars/ceremonies/1998'],
     ['Comment s’appelle le jeune lion du Roi Lion ?', ['Simba', 'Mufasa', 'Scar', 'Timon'], 'https://movies.disney.com/the-lion-king'],
-    ['Qui a réalisé Le Voyage dans la Lune en 1902 ?', ['Georges Méliès', 'Charlie Chaplin', 'Buster Keaton', 'Alice Guy'], mediaImages.moon.source, { ref: 'voyage-dans-la-lune', gallery: true }],
+    ['Qui a réalisé Le Voyage dans la Lune en 1902 ?', ['Georges Méliès', 'Charlie Chaplin', 'Buster Keaton', 'Alice Guy'], mediaImages.moon.source, { ref: 'voyage-dans-la-lune', frame: 1 }],
     ['Dans quelle décennie commence l’histoire de Stranger Things ?', ['Les années 1980', 'Les années 1970', 'Les années 1990', 'Les années 2000'], 'https://www.netflix.com/tudum/articles/stranger-things-season-1-recap', video('b9EkMc79ZSU', 'Bande-annonce officielle de Stranger Things', [8, 21], 'stranger-things')],
     ['Quelle est la mission initiale du robot WALL·E sur Terre ?', ['Ramasser les déchets', 'Planter des arbres', 'Chercher des survivants', 'Réparer des satellites'], 'https://movies.disney.com/wall-e', video('81nYibxXWCo', 'Bande-annonce officielle de WALL·E', [16, 30])],
     ['Qui tient le rôle principal dans le film muet Le Mécano de la « General » ?', ['Buster Keaton', 'Charlie Chaplin', 'Harold Lloyd', 'Douglas Fairbanks'], generalSource, generalClip],
-    ['Dans quel État américain se trouve la ville fictive de Hawkins ?', ['L’Indiana', 'L’Ohio', 'L’Illinois', 'Le Michigan'], 'https://www.netflix.com/tudum/videos/season-1-recap-stranger-things', 'stranger-things'],
-    ['Quel duo a créé la série Stranger Things ?', ['Les frères Duffer', 'Les frères Russo', 'Les frères Coen', 'Les sœurs Wachowski'], 'https://about.netflix.com/en/news/netflix-opens-the-rift-to-a-treasure-trove-of-all-new-stranger-things-must-haves', 'stranger-things'],
+    ['Dans quel État américain se trouve la ville fictive de Hawkins ?', ['L’Indiana', 'L’Ohio', 'L’Illinois', 'Le Michigan'], 'https://www.netflix.com/tudum/videos/season-1-recap-stranger-things'],
+    ['Quel duo a créé la série Stranger Things ?', ['Les frères Duffer', 'Les frères Russo', 'Les frères Coen', 'Les sœurs Wachowski'], 'https://about.netflix.com/en/news/netflix-opens-the-rift-to-a-treasure-trove-of-all-new-stranger-things-must-haves'],
   ],
 }

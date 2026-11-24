@@ -40,11 +40,11 @@ const rows = [
   ['youtube', 'kaizen', 'Quel est le titre du documentaire dans lequel le vidéaste sur cette photo relève un défi d’alpinisme ?',
     ['Kaizen', '14 x 8000', 'Free Solo', 'The Summit'], 'inoxtag', questionVideos['youtube-5']],
   ['memes', 'seau', 'Quel geste fallait-il accomplir dans ce défi viral de 2014 ?',
-    ['Se verser un seau d’eau glacée sur la tête', 'Empiler des gobelets en dix secondes', 'Danser sur place avec les yeux bandés', 'Rester immobile le plus longtemps possible'], 'ice-bucket-challenge'],
+    ['Se verser un seau d’eau glacée sur la tête', 'Empiler des gobelets en dix secondes', 'Danser sur place avec les yeux bandés', 'Rester immobile le plus longtemps possible'], 'ice-bucket-geste'],
   ['games', 'tux-racer', 'Dans Tux Racer, que ramasse le manchot en glissant sur les pistes enneigées ?',
     ['Des harengs', 'Des pièces d’or', 'Des carottes', 'Des anneaux'], undefined, tuxRacer],
   ['cinema', 'matrix', 'Dans Matrix, qui présente ces deux pilules à Néo ?',
-    ['Morpheus', 'Trinity', 'L’agent Smith', 'Cypher'], 'matrix'],
+    ['Morpheus', 'Trinity', 'L’agent Smith', 'Cypher'], 'matrix-pilules'],
 ]
 
 export const mediaQuestions = rows.map(([category, subject, prompt, choices, media, followUp]) => ({

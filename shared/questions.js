@@ -2,7 +2,7 @@ import { existingMedia, mediaLibrary, webQuestions } from './web-questions.js'
 import { customMedia, customMediaLibrary, customQuestions } from './mes-questions.js'
 import questionPacks, { expansionPacks, subjectPacks, supplementPacks } from './banque/index.js'
 import { trueFalseQuestions } from './banque/vrai-faux.js'
-import { expansionImages, subjectVideos } from './banque/extension/images.js'
+import { expansionImages } from './banque/extension/images.js'
 import { mediaQuestions, questionVideos } from './banque/media-questions.js'
 
 export const categories = [
@@ -99,7 +99,7 @@ const bank = {
     ['Quel studio a produit Le Voyage de Chihiro ?', 'Studio Ghibli', 'Pixar', 'DreamWorks', 'Toei Animation'],
     ['Quel prénom porte le protagoniste de la série Lupin avec Omar Sy ?', 'Assane', 'Arsène', 'Idriss', 'Malik'],
     ['Dans Kaamelott, quel chevalier est associé au « c’est pas faux » ?', 'Perceval', 'Karadoc', 'Lancelot', 'Gauvain'],
-    ['Quel objet Marty McFly utilise-t-il comme planche volante dans Retour vers le futur II ?', 'Un hoverboard', 'Un skateboard électrique', 'Un tapis volant', 'Un snowboard'],
+    ['Quel accessoire de Retour vers le futur II est exposé sur cette photo ?', 'Un hoverboard', 'Un skateboard électrique', 'Un tapis volant', 'Un snowboard'],
   ],
 }
 
@@ -117,7 +117,7 @@ function questionsFromPacks(packs) {
   return packs.flatMap(({ category, subject, rows, series = 'pack' }) =>
     rows.map(([prompt, correct, second, third, fourth, source, media], index) => ({
       id: [category, subject, series, index + 1].filter(Boolean).join('-'),
-      category, prompt, choices: [correct, second, third, fourth], answer: 0, source, media: media ?? subject,
+      category, prompt, choices: [correct, second, third, fourth], answer: 0, source, media,
     })),
   )
 }
@@ -132,7 +132,6 @@ const extraQuestions = questionsFromPacks(
 )
 
 export const imageCatalog = { ...mediaLibrary, ...expansionImages, ...customMediaLibrary }
-const topicPositions = new Map()
 
 function resolveMedia(value) {
   if (value?.type === 'video' && value.preview) return { ...value, preview: resolveMedia(value.preview) }
@@ -141,17 +140,15 @@ function resolveMedia(value) {
   if (!Object.hasOwn(imageCatalog, ref)) return undefined
   const entry = imageCatalog[ref]
   if (!entry.items?.length || value.gallery) return entry
-  const index = topicPositions.get(ref) ?? 0
-  topicPositions.set(ref, index + 1)
-  return { ...entry.items[index % entry.items.length], type: 'image', stage: entry.stage }
+  const image = entry.items[value.frame ?? 0]
+  return image && { ...image, type: 'image', stage: entry.stage }
 }
 
 export const questions = [...builtInQuestions, ...packQuestions, ...mediaQuestions, ...customQuestions, ...extraQuestions, ...trueFalseQuestions].map((question) => {
   const media = customMedia[question.id] ?? question.media
-  const subject = typeof media === 'string' ? media : media?.ref
   return {
     ...question,
     media: resolveMedia(media),
-    followUp: question.followUp ?? questionVideos[question.id] ?? subjectVideos[subject],
+    followUp: question.followUp ?? questionVideos[question.id],
   }
 })

@@ -2,10 +2,10 @@ import { quizRows } from './format.js'
 
 export default quizRows(`
 Quel joueur NBA effectue ce dunk ?|LeBron James|Dwyane Wade|Carmelo Anthony|Paul Pierce|lebron
-Avec quelle franchise ce joueur a-t-il remporté son premier titre NBA en 2012 ?|Miami Heat|Cleveland Cavaliers|Los Angeles Lakers|Chicago Bulls|lebron
+Avec quelle franchise ce joueur a-t-il remporté son premier titre NBA en 2012 ?|Miami Heat|Cleveland Cavaliers|Los Angeles Lakers|Chicago Bulls
 Quel sprinteur voit-on ici aux Jeux olympiques de Londres ?|Usain Bolt|Yohan Blake|Asafa Powell|Justin Gatlin|usain-bolt
 Pour quel pays cet athlète a-t-il couru aux Jeux olympiques ?|Jamaïque|Bahamas|États-Unis|Trinité-et-Tobago|usain-bolt
-Quel champion espagnol apparaît sur cette photo ?|Rafael Nadal|Carlos Alcaraz|David Ferrer|Juan Carlos Ferrero|nadal
+Quel champion espagnol porte le tee-shirt bleu, à droite sur cette photo ?|Rafael Nadal|Carlos Alcaraz|David Ferrer|Juan Carlos Ferrero|nadal
 Combien de titres en simple cet Espagnol a-t-il remportés à Roland-Garros ?|14|10|12|16|nadal
 En basketball, combien de points vaut un lancer franc marqué ?|1|2|3|4
 Quelle ville accueille le marathon qui relie Hopkinton à Boylston Street ?|Boston|New York|Chicago|Los Angeles

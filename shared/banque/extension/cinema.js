@@ -9,7 +9,7 @@ Quel artiste a réalisé le film muet dont on voit l’affiche ?|Charlie Chaplin
 En français, sous quel titre connaît-on aussi le film américain The Kid affiché ici ?|Le Gosse|Le Mécano de la Générale|Les Temps modernes|Le Cirque|charlie-chaplin
 Quel réalisateur a signé Les Dents de la mer en 1975 ?|Steven Spielberg|Francis Ford Coppola|George Lucas|Ridley Scott
 Quel compositeur a écrit le thème inquiétant des Dents de la mer ?|John Williams|Hans Zimmer|Ennio Morricone|Howard Shore
-Dans Jurassic Park, quelle île fictive accueille le premier parc ?|Isla Nublar|Isla Sorna|Skull Island|Île des Pins|jurassic-park
+Dans Jurassic Park, quelle île fictive accueille le premier parc ?|Isla Nublar|Isla Sorna|Skull Island|Île des Pins
 Quel personnage de Pirates des Caraïbes est joué par Johnny Depp ?|Jack Sparrow|Davy Jones|Will Turner|Hector Barbossa
 
 Qui joue l’archéologue Indiana Jones dans Les Aventuriers de l’arche perdue ?|Harrison Ford|Sean Connery|Tom Selleck|Jeff Goldblum
@@ -23,11 +23,11 @@ Quel ancien Jedi enseigne à Luke Skywalker sur Dagobah ?|Yoda|Qui-Gon Jinn|Mace
 Quel acteur joue T’Challa dans le premier Black Panther ?|Chadwick Boseman|Michael B. Jordan|Daniel Kaluuya|Winston Duke
 Quel métal fictif est extrait au Wakanda dans Black Panther ?|Le vibranium|L’adamantium|L’uru|Le mithril
 
-Quel acteur joue Néo dans Matrix ?|Keanu Reeves|Laurence Fishburne|Hugo Weaving|Brad Pitt|matrix
-De quelle couleur est la pilule qui révèle la vérité dans Matrix ?|Rouge|Bleue|Verte|Blanche|matrix
+Quel acteur joue Néo dans Matrix ?|Keanu Reeves|Laurence Fishburne|Hugo Weaving|Brad Pitt
+De quelle couleur est la pilule qui révèle la vérité dans Matrix ?|Rouge|Bleue|Verte|Blanche
 Qui interprète Rose jeune dans Titanic ?|Kate Winslet|Nicole Kidman|Keira Knightley|Gwyneth Paltrow
-Quel réalisateur a mis en scène Avatar en 2009 ?|James Cameron|Robert Zemeckis|J. J. Abrams|Michael Bay|avatar
-Comment s’appelle la lune où se déroule Avatar ?|Pandora|Arrakis|Tatooine|Krypton|avatar
+Quel réalisateur a mis en scène Avatar en 2009 ?|James Cameron|Robert Zemeckis|J. J. Abrams|Michael Bay
+Comment s’appelle la lune où se déroule Avatar ?|Pandora|Arrakis|Tatooine|Krypton
 Dans Le Fabuleux Destin d’Amélie Poulain, dans quel quartier parisien Amélie travaille-t-elle ?|Montmartre|Belleville|Saint-Germain-des-Prés|Le Marais
 Quel acteur interprète Éric dans La Cité de la peur ?|Alain Chabat|Dominique Farrugia|Gérard Darmon|Sam Karmann
 Qui joue Driss dans Intouchables ?|Omar Sy|François Cluzet|Roschdy Zem|Jamel Debbouze
@@ -58,9 +58,9 @@ Dans The Mandalorian, quel est le vrai nom du petit personnage surnommé « Baby
 
 Dans The Last of Us (série HBO), qui accompagne Joel à travers les États-Unis ?|Ellie|Tess|Abby|Marlene
 Dans Mercredi, quel nom porte l’académie où arrive l’héroïne ?|Nevermore|Riverdale High|Baxter High|Greendale
-Dans Arcane, comment s’appelle la sœur de Vi ?|Jinx|Caitlyn|Mel|Sevika|arcane
+Dans Arcane, comment s’appelle la sœur de Vi ?|Jinx|Caitlyn|Mel|Sevika
 Dans The Bear, quel prénom porte le chef surnommé Carmy ?|Carmen|Cameron|Carmine|Carl
-Dans Severance, comment s’appelle la procédure qui sépare les souvenirs professionnels des souvenirs personnels ?|La dissociation|L’effacement|Le clonage|La réinitialisation|severance
+Dans Severance, comment s’appelle la procédure qui sépare les souvenirs professionnels des souvenirs personnels ?|La dissociation|L’effacement|Le clonage|La réinitialisation
 Dans Succession, quel est le nom de famille des protagonistes ?|Roy|Pierce|Redstone|Carrington
 Dans Dix pour cent, dans quel milieu travaillent les personnages de l’agence ASK ?|Les agents artistiques|La presse sportive|La police judiciaire|La médecine d’urgence
 Dans Le Bureau des légendes, pour quel service travaillent les personnages principaux ?|La DGSE|La DGSI|Europol|Interpol
@@ -68,7 +68,7 @@ Dans H, où se déroule l’essentiel de l’action ?|Dans un hôpital|Dans un c
 Dans Kaamelott, quel nom porte l’épée que seul Arthur est censé pouvoir retirer du rocher ?|Excalibur|Durandal|Joyeuse|Narsil
 
 Qui a réalisé Pulp Fiction ?|Quentin Tarantino|Martin Scorsese|David Fincher|Paul Thomas Anderson
-Quel acteur incarne le Joker dans The Dark Knight ?|Heath Ledger|Joaquin Phoenix|Jared Leto|Jack Nicholson|dark-knight
+Quel acteur incarne le Joker dans The Dark Knight ?|Heath Ledger|Joaquin Phoenix|Jared Leto|Jack Nicholson
 Quel acteur incarne le roi George VI dans Le Discours d’un roi ?|Colin Firth|Gary Oldman|Benedict Cumberbatch|Hugh Grant
 Quel réalisateur sud-coréen a signé Parasite ?|Bong Joon-ho|Park Chan-wook|Lee Chang-dong|Kim Jee-woon
 Dans Le Voyage de Chihiro, en quels animaux les parents de Chihiro sont-ils transformés ?|En cochons|En loups|En corbeaux|En lapins
@@ -83,6 +83,6 @@ De quel film d’horreur de 1968 est tiré ce photogramme avec Duane Jones ?|La 
 Quel réalisateur signe le film où Duane Jones joue Ben ?|George A. Romero|John Carpenter|Wes Craven|Tobe Hooper|nuit-des-morts-vivants
 Quel film muet montre cet homme sur une draisine pendant la guerre de Sécession ?|Le Mécano de la « General »|Le Kid|Le Cirque|Monte là-dessus !|le-mecano-de-la-general
 Quel est le métier de Johnnie Gray dans le film dont cette scène est tirée ?|Conducteur de locomotive|Marin|Reporter|Pompier|le-mecano-de-la-general
-Quel peuple vit dans le désert d’Arrakis dans Dune ?|Les Fremen|Les Sardaukar|Les Atréides|Les Harkonnen|dune
-Quel est le prénom de la mère de Paul, membre du Bene Gesserit, dans Dune ?|Jessica|Irulan|Chani|Margot|dune
+Quel peuple vit dans le désert d’Arrakis dans Dune ?|Les Fremen|Les Sardaukar|Les Atréides|Les Harkonnen
+Quel est le prénom de la mère de Paul, membre du Bene Gesserit, dans Dune ?|Jessica|Irulan|Chani|Margot
 `)

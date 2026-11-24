@@ -35,6 +35,7 @@ export const counts = [5, 10, 15, 20, 30]
 export const durations = [10, 15, 20, 30]
 export const maxSpeedBonus = 400
 export const revealDuration = 5000
+const correctAnswerPoints = 600
 export const defaultSettings = {
   themes: [],
   total: 5,
@@ -308,7 +309,7 @@ function finishRound(room, now) {
     player.bestStreak = Math.max(player.bestStreak, player.streak)
     player.bestTime = Math.min(player.bestTime ?? Infinity, elapsed)
     entry.speedPoints = Math.round(speed * maxSpeedBonus)
-    entry.points = 600 + entry.speedPoints + Math.min(5, player.streak - 1) * 75
+    entry.points = correctAnswerPoints + entry.speedPoints + Math.min(5, player.streak - 1) * 75
     player.score += entry.points
   }
   room.ranking = rank(room)
@@ -447,6 +448,17 @@ export function act(room, id, action, now = Date.now()) {
   tick(room, now)
 }
 
+function roundScore(entry, openedAt) {
+  const points = entry.points
+  const basePoints = points > 0 ? correctAnswerPoints : 0
+  const speedPoints = entry.speedPoints ?? 0
+  return {
+    points, basePoints, speedPoints,
+    streakPoints: points - basePoints - speedPoints,
+    responseTime: typeof entry.answeredAt === 'number' ? Math.max(0, entry.answeredAt - openedAt) : null,
+  }
+}
+
 export function view(room, id, now = Date.now()) {
   const { phase, round } = room
   const entry = round?.entries.get(id)
@@ -484,6 +496,7 @@ export function view(room, id, now = Date.now()) {
       voters: votes.voters,
       nextAt: round.nextAt ?? 0,
       responses: Object.fromEntries([...round.entries].map(([playerId, { choices }]) => [playerId, choices])),
+      scores: Object.fromEntries([...round.entries].map(([playerId, playerEntry]) => [playerId, roundScore(playerEntry, round.openedAt)])),
     } : null,
     ranking: room.ranking.map((player, index) => {
       const previous = round.previous.indexOf(player.id)
