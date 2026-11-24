@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
   ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, BarChart3, Brain, Check,
@@ -9,6 +9,8 @@ import '@fontsource-variable/geist'
 import { act, avatars, counts, createRoom, defaultSettings, durations, jokerFitsQuestion, jokers, maxSpeedBonus, mergeQuestionHistory, questionCounts, tick, view } from '../shared/game.js'
 import { categories, illustratedCategory, themeOptions } from '../shared/questions.js'
 import { getPersonalityQuestion } from '../shared/personality.js'
+import { arcadeLimit } from '../shared/arcade.js'
+import { ArcadeAvatar, ArcadeIntro, ArcadeResults, ArcadeRound } from './arcade.jsx'
 import { PlayerAvatar, PlayerName, ProfileAppearance } from './profile.jsx'
 import { PersonalityIntro, PersonalityResults, PersonalityRound, PersonalitySetup } from './personality.jsx'
 import { SpeechSettings, useQuestionSpeech } from './speech.jsx'
@@ -74,6 +76,7 @@ function useGame() {
   const [reconnecting, setReconnecting] = useState(false)
   const local = useRef(null)
   const socket = useRef(null)
+  const arcadeFrame = useRef(null)
   const session = useRef(stored('qc-session', null))
   const clockOffset = useRef(0)
   const ignoreState = useRef(false)
@@ -104,6 +107,7 @@ function useGame() {
     if (socket.current) return socket.current
     const client = io({ autoConnect: false, reconnection: true, timeout: 3500 })
     client.on('state', (next) => { if (socket.current === client && !ignoreState.current) receive(next) })
+    client.on('arcade-frame', (frame) => { if (socket.current === client && !ignoreState.current) arcadeFrame.current = frame })
     client.on('disconnect', () => { if (socket.current === client && session.current) setReconnecting(true) })
     client.on('connect_error', () => {
       if (socket.current !== client || entering.current || !session.current) return
@@ -154,7 +158,7 @@ function useGame() {
     }
   }, [])
 
-  async function enter(mode, profile, { code, theme, personalityTest, speedBonus = defaultSettings.speedBonus } = {}) {
+  async function enter(mode, profile, { code, theme, personalityTest, arcade, speedBonus = defaultSettings.speedBonus } = {}) {
     setError('')
     setBusy(true)
     try {
@@ -175,7 +179,7 @@ function useGame() {
         entering.current = true
         ignoreState.current = false
         const client = (await connect()).connect()
-        const response = await request(client, 'enter', { mode, code, profile, personalityTest })
+        const response = await request(client, 'enter', { mode, code, profile, personalityTest, arcade })
         session.current = { code: response.state.code, token: response.token }
         store('qc-session', session.current)
         receive(response.state)
@@ -194,7 +198,7 @@ function useGame() {
 
   async function action(input) {
     setError('')
-    const command = input.type === 'start' && !state?.personality ? { ...input, history: readHistory() } : input
+    const command = input.type === 'start' && !state?.personality && !state?.arcade ? { ...input, history: readHistory() } : input
     try {
       if (local.current) {
         act(local.current.room, local.current.player.id, command)
@@ -210,6 +214,7 @@ function useGame() {
 
   function leave() {
     ignoreState.current = true
+    arcadeFrame.current = null
     local.current = null
     session.current = null
     store('qc-session', null)
@@ -225,7 +230,10 @@ function useGame() {
     history.replaceState(null, '', url)
   }
 
-  return { state, busy, error, reconnecting, clockOffset, enter, action, leave, clearError: () => setError('') }
+  const aimArcade = useCallback((angle) => {
+    if (socket.current?.connected) socket.current.volatile.emit('arcade-aim', angle)
+  }, [])
+  return { state, busy, error, reconnecting, clockOffset, enter, action, leave, arcadeFrame, aimArcade, clearError: () => setError('') }
 }
 
 function CategoryIcon({ category, size = 22 }) {
@@ -399,6 +407,7 @@ async function copyText(text) {
 function Lobby({ state, action, error }) {
   const host = state.selfId === state.hostId
   const canStart = state.players.length >= 2 || (state.local && Boolean(state.personality))
+  const Avatar = state.arcade ? ArcadeAvatar : PlayerAvatar
   const [copied, setCopied] = useState('')
   async function copy(kind) {
     const url = new URL(location.href)
@@ -411,12 +420,12 @@ function Lobby({ state, action, error }) {
       <section className="panel lobby-players">
         {state.local ? <div className="lobby-code local-code"><Gamepad2 size={32}/><div><strong className="display">{state.personality ? 'Questionnaire en solo' : 'Solo contre les bots'}</strong>{!state.personality && <p>Pixel, Mochi et Glitch jouent avec toi.</p>}</div></div> :
           <div className="lobby-code"><div className="field-label">Code du salon</div><strong className="display">{state.code}</strong><div className="flex flex-wrap gap-2"><button className="button small secondary" onClick={() => copy('code')}>{copied === 'code' ? <Check size={15} /> : <Copy size={15} />}{copied === 'code' ? 'Code copié' : 'Copier le code'}</button><button className="button small secondary" onClick={() => copy('link')}>{copied === 'link' ? <Check size={15} /> : <Copy size={15} />}{copied === 'link' ? 'Lien copié' : 'Copier le lien'}</button></div>{copied === 'failed' && <p className="field-note" role="status">Sélectionne le code pour le copier.</p>}</div>}
-        <div className="player-heading"><h2 className="display">Joueurs</h2><span><Users size={16} /> {state.players.length}{!state.local && ' / 24'}</span></div>
-        <ul className="player-list">{state.players.map((player) => <li key={player.id}><PlayerAvatar player={player} /><strong><PlayerName player={player} />{player.id === state.selfId && <small> (toi)</small>}</strong>{player.id === state.hostId && <span className="host-tag"><Crown size={14} /> Hôte</span>}{player.bot && <span className="host-tag bot-tag">Bot</span>}</li>)}</ul>
+        <div className="player-heading"><h2 className="display">Joueurs</h2><span><Users size={16} /> {state.players.length}{!state.local && ` / ${state.arcade ? arcadeLimit : 24}`}</span></div>
+        <ul className="player-list">{state.players.map((player) => <li key={player.id}><Avatar player={player} /><strong><PlayerName player={player} />{player.id === state.selfId && <small> (toi)</small>}</strong>{player.id === state.hostId && <span className="host-tag"><Crown size={14} /> Hôte</span>}{player.bot && <span className="host-tag bot-tag">Bot</span>}</li>)}</ul>
         <ErrorText>{error}</ErrorText>
         {host ? <><button className="button primary w-full justify-center mt-5" disabled={!canStart} onClick={() => action({ type: 'start' })}><Play size={19} fill="currentColor" /> {state.personality ? 'Lancer le questionnaire' : 'Lancer la partie'}</button>{!canStart && <p className="field-note text-center">Il faut au moins 2 joueurs pour démarrer.</p>}</> : <p className="wait-note"><span /> L’hôte lance la partie.</p>}
       </section>
-      {state.personality ? <PersonalityIntro testId={state.personality.testId} /> : <Settings state={state} action={action} host={host} />}
+      {state.arcade ? <ArcadeIntro /> : state.personality ? <PersonalityIntro testId={state.personality.testId} /> : <Settings state={state} action={action} host={host} />}
     </div>
   </main>
 }
@@ -657,6 +666,7 @@ function App() {
   const selectedTheme = themeOptions.find(({ id }) => id === soloTheme)
   const isIllustrated = selectedTheme === illustratedCategory
   const isPersonalitySetup = modal === 'personality'
+  const isArcadeSetup = modal === 'arcade'
   const self = state?.players.find(({ id }) => id === state.selfId)
   useEffect(() => { window.scrollTo(0, 0) }, [state?.phase, state?.index])
   const openSolo = (theme = null) => {
@@ -673,7 +683,7 @@ function App() {
   async function enterFromModal(event) {
     event.preventDefault()
     const mode = isPersonalitySetup ? personalityMode : modal === 'solo' ? 'local' : 'create'
-    const options = isPersonalitySetup ? { personalityTest } : { theme: soloTheme, speedBonus: isIllustrated ? illustratedSpeedBonus : defaultSettings.speedBonus }
+    const options = isArcadeSetup ? { arcade: true } : isPersonalitySetup ? { personalityTest } : { theme: soloTheme, speedBonus: isIllustrated ? illustratedSpeedBonus : defaultSettings.speedBonus }
     if (await game.enter(mode, profile, options)) setModal('')
   }
   return <>
@@ -693,9 +703,15 @@ function App() {
     {state?.phase === 'final' && <Final state={state} action={game.action} leave={leave} error={game.error} />}
     {state?.phase === 'personality' && <PersonalityRound state={state} action={game.action} reconnecting={game.reconnecting} speech={speech} error={game.error} />}
     {state?.phase === 'personality-final' && <PersonalityResults state={state} action={game.action} leave={leave} error={game.error} />}
-    <footer className="site-footer page-width"><Logo /><p>Créé par <a href="https://www.malbroye.fr" target="_blank" rel="noopener noreferrer">Malbroye Studio</a></p></footer>
-    {['create', 'solo', 'personality'].includes(modal) && <Modal close={close} className={isPersonalitySetup ? 'personality-modal' : ''} title={isPersonalitySetup ? 'Tests de personnalité' : modal === 'solo' ? 'Ton profil solo' : 'Créer un salon'}><form className="modal-form" onSubmit={enterFromModal}>
+    {state?.phase === 'arcade' && <ArcadeRound state={state} frameRef={game.arcadeFrame} aim={game.aimArcade} paused={Boolean(modal)} reconnecting={game.reconnecting} error={game.error} />}
+    {state?.phase === 'arcade-final' && <ArcadeResults state={state} action={game.action} leave={leave} error={game.error} />}
+    <footer className="site-footer page-width"><Logo />
+      {!state && <button className="arcade-trigger" type="button" aria-label="Ouvrir l’arcade secrète" title="Arcade secrète" disabled={game.busy} onClick={() => { game.clearError(); setModal('arcade') }}><Gamepad2 size={18} /></button>}
+      <p>Créé par <a href="https://www.malbroye.fr" target="_blank" rel="noopener noreferrer">Malbroye Studio</a></p>
+    </footer>
+    {['create', 'solo', 'personality', 'arcade'].includes(modal) && <Modal close={close} className={isPersonalitySetup ? 'personality-modal' : ''} title={isArcadeSetup ? 'Snake des potes' : isPersonalitySetup ? 'Tests de personnalité' : modal === 'solo' ? 'Ton profil solo' : 'Créer un salon'}><form className="modal-form" onSubmit={enterFromModal}>
       {isPersonalitySetup && <PersonalitySetup testId={personalityTest} setTestId={setPersonalityTest} mode={personalityMode} setMode={setPersonalityMode} />}
+      {isArcadeSetup && <><p>Une arène en ligne pour 2 ou 3 potes. Partage le code du salon pour les inviter.</p><p className="field-note">Les pseudos Axel, Mathis et Flo chargent vos têtes de l’accueil. Tu peux aussi ajouter ta photo dans le profil.</p></>}
       {modal === 'create' && <p>Tu pourras partager le code du salon avec tes amis.</p>}
       {modal === 'solo' && selectedTheme && <p>{isIllustrated ? 'Quiz illustré · Images et vidéos' : selectedTheme.name}</p>}
       <label className="field-label">Ton pseudo<input autoFocus={!isPersonalitySetup} autoComplete="nickname" placeholder="Ex. Pixel42" required maxLength={20} value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} /></label>

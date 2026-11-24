@@ -3,6 +3,7 @@ import { createServer } from 'node:http'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { act, addPlayer, createRoom, makeCode, removePlayer, setConnected, tick, view } from '../shared/game.js'
+import { aimArcade, arcadeFrame, arcadeStep, tickArcade } from '../shared/arcade.js'
 
 const isDevelopment = process.argv.includes('--dev')
 const app = express()
@@ -113,7 +114,7 @@ io?.on('connection', (socket) => {
       if (rooms.size >= 500) throw new Error('Le serveur est plein. Réessaie dans quelques minutes.')
       let code
       do { code = makeCode() } while (rooms.has(code))
-      const created = createRoom(payload.profile, { code, now, personalityTest: payload.personalityTest })
+      const created = createRoom(payload.profile, { code, now, personalityTest: payload.personalityTest, arcade: payload.arcade === true })
       player = created.player
       record = { room: created.room, tokens: new Map(), sockets: new Map(), away: new Map() }
       rooms.set(code, record)
@@ -152,7 +153,28 @@ io?.on('connection', (socket) => {
   })
 
   socket.on('disconnect', () => detach(socket))
+  let lastAimAt = 0
+  socket.on('arcade-aim', (angle) => {
+    const session = socket.data.session
+    const now = Date.now()
+    if (!session?.record.room.arcade || now - lastAimAt < 25) return
+    lastAimAt = now
+    aimArcade(session.record.room, session.id, angle)
+  })
 })
+
+setInterval(() => {
+  const now = Date.now()
+  for (const record of rooms.values()) {
+    if (record.room.phase !== 'arcade' || !record.sockets.size) continue
+    if (tickArcade(record.room, now)) {
+      publish(record, now)
+      continue
+    }
+    const frame = arcadeFrame(record.room, now)
+    for (const socket of record.sockets.values()) socket.volatile.emit('arcade-frame', frame)
+  }
+}, arcadeStep).unref()
 
 setInterval(() => {
   const now = Date.now()

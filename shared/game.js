@@ -1,5 +1,6 @@
 import { categories, illustratedCategory, questions, themeOptions } from './questions.js'
 import { actPersonality, getPersonalityTest, personalityView } from './personality.js'
+import { actArcade, arcadeFrame, arcadeLimit } from './arcade.js'
 
 export const avatars = ['👾', '🦊', '🐸', '🤖', '🐙', '🦄', '👻', '🐼', '🐱', '👽', '🦖', '🐝']
 export const nameColors = [
@@ -114,7 +115,7 @@ export function addPlayer(room, profile, id = Array.from(crypto.getRandomValues(
   if (room.phase !== 'lobby') throw new Error('Cette partie a déjà commencé.')
   const name = typeof profile?.name === 'string' ? profile.name.trim().replace(/\s+/g, ' ').slice(0, 20) : ''
   if (!name) throw new Error('Choisis un pseudo pour entrer.')
-  if (room.players.size >= 24) throw new Error('Ce salon est complet.')
+  if (room.players.size >= (room.arcade ? arcadeLimit : 24)) throw new Error('Ce salon est complet.')
   if ([...room.players.values()].some((player) => player.name.toLowerCase() === name.toLowerCase())) {
     throw new Error('Ce pseudo est déjà pris dans le salon.')
   }
@@ -132,13 +133,15 @@ export function addPlayer(room, profile, id = Array.from(crypto.getRandomValues(
   return player
 }
 
-export function createRoom(profile, { local = false, code = makeCode(), now = Date.now(), personalityTest } = {}) {
+export function createRoom(profile, { local = false, code = makeCode(), now = Date.now(), personalityTest, arcade = false } = {}) {
   if (personalityTest !== undefined && !getPersonalityTest(personalityTest)) throw new Error('Ce questionnaire est indisponible.')
+  if (arcade && (local || personalityTest)) throw new Error('L’arène se joue dans son propre salon en ligne.')
   const room = {
     code, local, players: new Map(), hostId: null, phase: 'lobby', settings: settingsFrom(defaultSettings),
     deck: [], questionHistory: [], round: null, index: -1, ranking: [], touched: now,
   }
   if (personalityTest) room.personality = { testId: personalityTest, answers: {}, run: 0 }
+  if (arcade) room.arcade = {}
   const player = addPlayer(room, profile)
   if (local && !room.personality) {
     botNames.forEach((name, index) => addPlayer(room, {
@@ -345,6 +348,11 @@ export function act(room, id, action, now = Date.now()) {
     room.touched = now
     return
   }
+  if (room.arcade) {
+    actArcade(room, action, now)
+    room.touched = now
+    return
+  }
   if (type === 'settings' && room.phase === 'lobby') {
     const { theme, settings } = action
     const current = room.settings
@@ -421,6 +429,7 @@ export function view(room, id, now = Date.now()) {
     code: room.code, phase, local: room.local, hostId: room.hostId, selfId: id,
     now, settings: room.settings, index: room.index, questionCounts,
     personality: room.personality && personalityView(room, id),
+    arcade: room.arcade && { frame: arcadeFrame(room, now) },
     players: [...room.players.values()].filter((player) => phase !== 'lobby' || player.connected).map(publicPlayer),
     stock: phase === 'lobby' ? room.settings.jokers : self.stock,
     question: round && {
