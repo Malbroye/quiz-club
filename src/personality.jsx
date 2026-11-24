@@ -5,7 +5,7 @@ import { PlayerAvatar, PlayerName } from './profile.jsx'
 
 const letters = 'ABCD'
 
-export function PersonalitySetup({ testId, setTestId, mode, setMode }) {
+export function PersonalitySetup({ testId, setTestId, mode, setMode, grouped }) {
   return <>
     <fieldset className="personality-setup">
       <legend className="field-label">Choisis ton test</legend>
@@ -14,11 +14,11 @@ export function PersonalitySetup({ testId, setTestId, mode, setMode }) {
         <span><strong>{test.title}</strong><small>{test.description}</small></span>
       </label>)}
     </fieldset>
-    <fieldset className="personality-formats">
+    {!grouped && <fieldset className="personality-formats">
       <legend className="field-label">Avec qui ?</legend>
       <label><input type="radio" name="personality-mode" checked={mode === 'create'} onChange={() => setMode('create')} /> Entre amis</label>
       <label><input type="radio" name="personality-mode" checked={mode === 'local'} onChange={() => setMode('local')} /> En solo</label>
-    </fieldset>
+    </fieldset>}
   </>
 }
 

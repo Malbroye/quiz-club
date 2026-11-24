@@ -2,7 +2,7 @@ import express from 'express'
 import { createServer } from 'node:http'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { act, addPlayer, createRoom, makeCode, removePlayer, setConnected, tick, view } from '../shared/game.js'
+import { act, addPlayer, createRoom, makeCode, normalizeRoomCode, removePlayer, setConnected, tick, view } from '../shared/game.js'
 import { aimArcade, arcadeFrame, arcadeStep, tickArcade } from '../shared/arcade.js'
 
 const isDevelopment = process.argv.includes('--dev')
@@ -53,12 +53,30 @@ function attach(socket, record, id, token) {
   record.room.touched = Date.now()
 }
 
+function closeRoom(record, hostId) {
+  const { code } = record.room
+  storage?.remove(code)
+  rooms.delete(code)
+  for (const [id, member] of record.sockets) {
+    delete member.data.session
+    if (id !== hostId) member.emit('room-closed')
+  }
+  record.sockets.clear()
+  record.tokens.clear()
+  record.away.clear()
+}
+
 function detach(socket, leaving = false) {
   const session = socket.data.session
-  delete socket.data.session
   if (!session) return
   const { record, id, token } = session
-  if (record.sockets.get(id) !== socket) return
+  const current = record.sockets.get(id) === socket
+  if (current && leaving && record.room.hostId === id) {
+    closeRoom(record, id)
+    return
+  }
+  delete socket.data.session
+  if (!current) return
   record.sockets.delete(id)
   if (leaving) {
     record.tokens.delete(token)
@@ -101,7 +119,8 @@ io?.on('connection', (socket) => {
     }
     if (payload?.mode === 'resume') {
       const record = rooms.get(payload.code)
-      const id = record?.tokens.get(payload.token)
+      if (!record) throw new Error('Ce salon est fermé ou a expiré.')
+      const id = record.tokens.get(payload.token)
       if (!id || !record.room.players.has(id)) throw new Error('Ta place a expiré. Rejoins le salon avec son code.')
       attach(socket, record, id, payload.token)
       publish(record, now)
@@ -114,12 +133,12 @@ io?.on('connection', (socket) => {
       if (rooms.size >= 500) throw new Error('Le serveur est plein. Réessaie dans quelques minutes.')
       let code
       do { code = makeCode() } while (rooms.has(code))
-      const created = createRoom(payload.profile, { code, now, personalityTest: payload.personalityTest, arcade: payload.arcade === true })
+      const created = createRoom(payload.profile, { code, now, personalityTest: payload.personalityTest, arcade: payload.arcade === true, groupHome: payload.groupHome === true })
       player = created.player
       record = { room: created.room, tokens: new Map(), sockets: new Map(), away: new Map() }
       rooms.set(code, record)
     } else if (payload?.mode === 'join') {
-      const code = typeof payload.code === 'string' ? payload.code.trim().toUpperCase() : ''
+      const code = normalizeRoomCode(payload.code)
       record = rooms.get(code)
       if (!record) throw new Error('Salon introuvable. Vérifie le code.')
       player = addPlayer(record.room, payload.profile)

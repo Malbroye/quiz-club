@@ -34,6 +34,7 @@ export const jokers = [
 export const counts = [5, 10, 15, 20, 30]
 export const durations = [10, 15, 20, 30]
 export const maxSpeedBonus = 400
+export const revealDuration = 5000
 export const defaultSettings = {
   themes: [],
   total: 5,
@@ -46,7 +47,8 @@ export function jokerFitsQuestion(joker, choiceCount) {
   return choiceCount !== 2 || (joker !== 'half' && joker !== 'double')
 }
 
-const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+export const roomCodeLength = 3
 const botNames = ['Pixel', 'Mochi', 'Glitch']
 const botSkill = [0.74, 0.55, 0.4]
 const questionIds = new Set(questions.map(({ id }) => id))
@@ -65,7 +67,12 @@ export function mergeQuestionHistory(history, recent) {
 }
 
 export function makeCode() {
-  return Array.from(crypto.getRandomValues(new Uint8Array(6)), (value) => letters[value % letters.length]).join('')
+  return Array.from(crypto.getRandomValues(new Uint16Array(roomCodeLength)), (value) => letters[value % letters.length]).join('')
+}
+
+export function normalizeRoomCode(value) {
+  const code = typeof value === 'string' ? value.trim().toUpperCase() : ''
+  return /^[A-Z]{3}$|^[A-Z0-9]{6}$/.test(code) ? code : ''
 }
 
 function shuffle(items) {
@@ -133,12 +140,12 @@ export function addPlayer(room, profile, id = Array.from(crypto.getRandomValues(
   return player
 }
 
-export function createRoom(profile, { local = false, code = makeCode(), now = Date.now(), personalityTest, arcade = false } = {}) {
+export function createRoom(profile, { local = false, code = makeCode(), now = Date.now(), personalityTest, arcade = false, groupHome = false } = {}) {
   if (personalityTest !== undefined && !getPersonalityTest(personalityTest)) throw new Error('Ce questionnaire est indisponible.')
   if (arcade && (local || personalityTest)) throw new Error('L’arène se joue dans son propre salon en ligne.')
   const room = {
     code, local, players: new Map(), hostId: null, phase: 'lobby', settings: settingsFrom(defaultSettings),
-    deck: [], questionHistory: [], round: null, index: -1, ranking: [], touched: now,
+    deck: [], questionHistory: [], round: null, index: -1, ranking: [], touched: now, groupHome: !local && groupHome,
   }
   if (personalityTest) room.personality = { testId: personalityTest, answers: {}, run: 0 }
   if (arcade) room.arcade = {}
@@ -286,7 +293,7 @@ function pollFor(room, id) {
   return { percentages: voters >= 2 ? distribution(votes) : room.round.simulation, voters, simulated: voters < 2 }
 }
 
-function finishRound(room) {
+function finishRound(room, now) {
   const { question, entries, openedAt } = room.round
   for (const [id, entry] of entries) {
     const player = room.players.get(id)
@@ -305,6 +312,7 @@ function finishRound(room) {
     player.score += entry.points
   }
   room.ranking = rank(room)
+  room.round.nextAt = room.local ? now : now + revealDuration
   room.phase = 'reveal'
 }
 
@@ -330,7 +338,7 @@ export function tick(room, now = Date.now()) {
     }
   }
   if (soloFinished || [...entries.values()].every((entry) => entry.locked)) {
-    finishRound(room)
+    finishRound(room, now)
     return true
   }
   return changed
@@ -340,9 +348,28 @@ export function act(room, id, action, now = Date.now()) {
   const player = room.players.get(id)
   if (!player?.connected) throw new Error('Reconnecte-toi au salon.')
   const type = action?.type
-  if (['settings', 'start', 'next', 'rematch', 'finish-personality'].includes(type) && id !== room.hostId) {
+  if (['settings', 'start', 'next', 'rematch', 'finish-personality', 'group-home', 'prepare'].includes(type) && id !== room.hostId) {
     throw new Error('Cette action est réservée à l’hôte.')
   }
+  if (type === 'group-home' && !room.local) {
+    Object.assign(room, { phase: 'lobby', groupHome: true, round: null, index: -1, deck: [], ranking: [], touched: now })
+    room.personality = undefined
+    room.arcade = undefined
+    return
+  }
+  if (type === 'prepare' && room.groupHome) {
+    const { personalityTest, arcade, theme } = action
+    if (personalityTest !== undefined && !getPersonalityTest(personalityTest)) throw new Error('Ce questionnaire est indisponible.')
+    if (arcade === true && personalityTest) throw new Error('Choisis un seul jeu.')
+    if (arcade === true && room.players.size > arcadeLimit) throw new Error('L’arcade accueille trois joueurs maximum.')
+    room.personality = personalityTest ? { testId: personalityTest, answers: {}, run: 0 } : undefined
+    room.arcade = arcade === true ? {} : undefined
+    if (theme) room.settings = settingsFrom({ ...room.settings, themes: [theme] })
+    room.groupHome = false
+    room.touched = now
+    return
+  }
+  if (room.groupHome) throw new Error('Choisis un jeu avant de lancer la partie.')
   if (room.personality) {
     actPersonality(room, id, action)
     room.touched = now
@@ -376,6 +403,7 @@ export function act(room, id, action, now = Date.now()) {
     openRound(room, now)
   } else if (type === 'next' && room.phase === 'reveal') {
     if (action.round !== room.index) throw new Error('Cette manche est déjà terminée.')
+    if (now < room.round.nextAt) throw new Error('Laisse quelques secondes aux joueurs pour lire les réponses.')
     if (room.index + 1 === room.deck.length) room.phase = 'final'
     else openRound(room, now)
   } else if (type === 'rematch' && room.phase === 'final') {
@@ -424,9 +452,10 @@ export function view(room, id, now = Date.now()) {
   const entry = round?.entries.get(id)
   const self = room.players.get(id)
   const revealed = phase === 'reveal' || phase === 'final'
+  const votes = revealed ? tally(room) : null
   const publicPlayer = ({ id, name, avatar, photo, nameColor, connected, bot }) => ({ id, name, avatar, photo, nameColor, connected, bot })
   return {
-    code: room.code, phase, local: room.local, hostId: room.hostId, selfId: id,
+    code: room.code, phase, local: room.local, hostId: room.hostId, selfId: id, groupHome: room.groupHome,
     now, settings: room.settings, index: room.index, questionCounts,
     personality: room.personality && personalityView(room, id),
     arcade: room.arcade && { frame: arcadeFrame(room, now) },
@@ -449,7 +478,13 @@ export function view(room, id, now = Date.now()) {
       points: revealed ? entry.points : null,
       speedPoints: revealed ? entry.speedPoints ?? 0 : null,
     },
-    result: revealed ? { answer: round.question.answer, percentages: distribution(tally(room).votes), voters: tally(room).voters } : null,
+    result: revealed ? {
+      answer: round.question.answer,
+      percentages: distribution(votes.votes),
+      voters: votes.voters,
+      nextAt: round.nextAt ?? 0,
+      responses: Object.fromEntries([...round.entries].map(([playerId, { choices }]) => [playerId, choices])),
+    } : null,
     ranking: room.ranking.map((player, index) => {
       const previous = round.previous.indexOf(player.id)
       return {

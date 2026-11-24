@@ -6,7 +6,7 @@ import {
   HeartHandshake, Image, Maximize2, Play, Plus, Shuffle, Smile, Sparkles, Square, Swords, TimerReset, Trophy, Twitch, Users, Volume2, X, Youtube, Zap,
 } from 'lucide-react'
 import '@fontsource-variable/geist'
-import { act, avatars, counts, createRoom, defaultSettings, durations, jokerFitsQuestion, jokers, maxSpeedBonus, mergeQuestionHistory, questionCounts, tick, view } from '../shared/game.js'
+import { act, avatars, counts, createRoom, defaultSettings, durations, jokerFitsQuestion, jokers, maxSpeedBonus, mergeQuestionHistory, normalizeRoomCode, questionCounts, revealDuration, roomCodeLength, tick, view } from '../shared/game.js'
 import { categories, illustratedCategory, themeOptions } from '../shared/questions.js'
 import { getPersonalityQuestion } from '../shared/personality.js'
 import { arcadeLimit } from '../shared/arcade.js'
@@ -23,7 +23,7 @@ const letters = ['A', 'B', 'C', 'D']
 const score = new Intl.NumberFormat('fr-FR')
 const historyKey = 'qc-question-history'
 const speechKey = 'qc-speech'
-const codeFromUrl = new URLSearchParams(location.search).get('room')?.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) ?? ''
+const codeFromUrl = normalizeRoomCode(new URLSearchParams(location.search).get('room'))
 
 function stored(key, fallback, storage = 'sessionStorage') {
   try { return JSON.parse(window[storage].getItem(key)) ?? fallback } catch { return fallback }
@@ -74,6 +74,8 @@ function useGame() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [reconnecting, setReconnecting] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [leaving, setLeaving] = useState(false)
   const local = useRef(null)
   const socket = useRef(null)
   const arcadeFrame = useRef(null)
@@ -107,6 +109,9 @@ function useGame() {
     if (socket.current) return socket.current
     const client = io({ autoConnect: false, reconnection: true, timeout: 3500 })
     client.on('state', (next) => { if (socket.current === client && !ignoreState.current) receive(next) })
+    client.on('room-closed', () => {
+      if (socket.current === client) returnHome('L’hôte a quitté la partie. Le salon est fermé.')
+    })
     client.on('arcade-frame', (frame) => { if (socket.current === client && !ignoreState.current) arcadeFrame.current = frame })
     client.on('disconnect', () => { if (socket.current === client && session.current) setReconnecting(true) })
     client.on('connect_error', () => {
@@ -126,11 +131,7 @@ function useGame() {
         }
       } catch (problem) {
         if (!stillCurrent()) return
-        session.current = null
-        store('qc-session', null)
-        setState(null)
-        setError(problem.message)
-        client.disconnect()
+        returnHome(problem.message)
       } finally {
         if (socket.current === client) setReconnecting(false)
       }
@@ -158,8 +159,9 @@ function useGame() {
     }
   }, [])
 
-  async function enter(mode, profile, { code, theme, personalityTest, arcade, speedBonus = defaultSettings.speedBonus } = {}) {
+  async function enter(mode, profile, { code, theme, personalityTest, arcade, groupHome, speedBonus = defaultSettings.speedBonus } = {}) {
     setError('')
+    setNotice('')
     setBusy(true)
     try {
       if (mode === 'local') {
@@ -179,7 +181,8 @@ function useGame() {
         entering.current = true
         ignoreState.current = false
         const client = (await connect()).connect()
-        const response = await request(client, 'enter', { mode, code, profile, personalityTest, arcade })
+        const response = await request(client, 'enter', { mode, code, profile, personalityTest, arcade, groupHome })
+        if (socket.current !== client) return false
         session.current = { code: response.state.code, token: response.token }
         store('qc-session', session.current)
         receive(response.state)
@@ -207,12 +210,14 @@ function useGame() {
         if (!socket.current?.connected || reconnecting) throw new Error('Reconnexion au salon en cours…')
         await request(socket.current, 'action', command)
       }
+      return true
     } catch (problem) {
       setError(problem.message)
+      return false
     }
   }
 
-  function leave() {
+  function returnHome(message = '') {
     ignoreState.current = true
     arcadeFrame.current = null
     local.current = null
@@ -220,20 +225,45 @@ function useGame() {
     store('qc-session', null)
     const client = socket.current
     socket.current = null
-    if (client?.connected) request(client, 'action', { type: 'leave' }).catch(() => {}).finally(() => client.disconnect())
-    else client?.disconnect()
+    client?.disconnect()
     setState(null)
     setError('')
     setReconnecting(false)
+    setNotice(message)
     const url = new URL(location.href)
     url.searchParams.delete('room')
     history.replaceState(null, '', url)
   }
 
+  async function leave() {
+    if (leaving) return false
+    const client = socket.current
+    const onlineHost = state && !state.local && state.selfId === state.hostId
+    setError('')
+    if (onlineHost && !client?.connected) {
+      setError('Attends la reconnexion pour fermer le salon.')
+      return false
+    }
+    if (client?.connected) {
+      setLeaving(true)
+      try {
+        await request(client, 'action', { type: 'leave' })
+      } catch (problem) {
+        if (socket.current === client) setError(problem.message)
+        return false
+      } finally {
+        setLeaving(false)
+      }
+      if (socket.current !== client) return false
+    }
+    returnHome()
+    return true
+  }
+
   const aimArcade = useCallback((angle) => {
     if (socket.current?.connected) socket.current.volatile.emit('arcade-aim', angle)
   }, [])
-  return { state, busy, error, reconnecting, clockOffset, enter, action, leave, arcadeFrame, aimArcade, clearError: () => setError('') }
+  return { state, busy, error, reconnecting, notice, leaving, clockOffset, enter, action, leave, arcadeFrame, aimArcade, clearError: () => setError('') }
 }
 
 function CategoryIcon({ category, size = 22 }) {
@@ -303,49 +333,60 @@ function useHomeRotation(items, key) {
   return selection.item
 }
 
-function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, openSolo, openPersonality, code, setCode }) {
+function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, openSolo, openPersonality, resumeGame, group, code, setCode }) {
   const headline = useHomeRotation(heroLines, 'qc-hero')
   const cover = useHomeRotation(illustratedCovers, 'qc-illustrated-cover')
   const [stickersPaused, setStickersPaused] = useState(() => stored('qc-stickers-paused', false, 'localStorage'))
+  const canChoose = !group || (group.groupHome && group.selfId === group.hostId)
+  const legacyCode = codeFromUrl.length === 6 && code.length > roomCodeLength
   useEffect(() => { store('qc-stickers-paused', stickersPaused, 'localStorage') }, [stickersPaused])
   return <main className="home page-width">
     <HomeStickers paused={stickersPaused} />
     <section className="hero" aria-labelledby="home-title">
       <div className="hero-copy">
         <h1 className="display hero-title" id="home-title">{headline[0]} <em>{headline[1]}</em></h1>
-        <p>Défie tes amis ou joue en solo contre trois bots.</p>
+        <p>{group ? group.groupHome ? 'Ton groupe est réuni pour la prochaine partie.' : 'Tu es toujours dans le groupe. Reprends la partie quand tu veux.' : 'Défie tes amis ou joue en solo contre trois bots.'}</p>
         <div className="home-actions">
-          <button className="button primary" onClick={openCreate}><Plus size={20} /> Créer un salon</button>
-          <button className="button secondary" disabled={game.busy} onClick={() => openSolo()}><Play size={17} /> Jouer en solo</button>
+          {!group ? <>
+            <button className="button primary" disabled={game.busy} onClick={openCreate}><Plus size={20} /> Créer un groupe</button>
+            <button className="button secondary" disabled={game.busy} onClick={() => openSolo()}><Play size={17} /> Jouer en solo</button>
+          </> : !group.groupHome ? <button className="button primary" onClick={resumeGame}><Play size={17} /> Reprendre la partie</button>
+            : canChoose && <button className="button primary" disabled={game.reconnecting} onClick={() => openSolo()}><Play size={17} /> Préparer le quiz</button>}
         </div>
-        <button className="illustrated-card" type="button" onClick={() => openSolo(illustratedCategory.id)} disabled={game.busy}>
+        {canChoose && <><button className="illustrated-card" type="button" onClick={() => openSolo(illustratedCategory.id)} disabled={game.busy || game.reconnecting}>
           <img src={localMediaPaths(cover)[0]} alt="" />
           <span className="illustrated-copy"><span className="illustrated-label"><Image size={15} /> Images et vidéos</span><strong>Quiz illustré</strong></span>
           <span className="illustrated-arrow"><ArrowRight size={20} /></span>
         </button>
-        <button className="personality-entry" type="button" onClick={openPersonality} disabled={game.busy}>
+        <button className="personality-entry" type="button" onClick={openPersonality} disabled={game.busy || game.reconnecting}>
           <HeartHandshake size={23} /><span><strong>Tests de personnalité</strong><small>8 questions, un verdict absurde. En solo ou entre potes.</small></span><ArrowRight size={18} />
-        </button>
+        </button></>}
       </div>
       <div className="hero-side">
-        <form className="join-panel" onSubmit={(event) => { event.preventDefault(); game.enter('join', profile, { code }) }}>
+        {group ? <section className="join-panel" aria-label="Ton groupe">
+          <div className="join-heading"><h2 className="display">Ton groupe</h2><Users size={22} /></div>
+          <RoomInvite code={group.code} />
+          <RoomPlayers state={group} />
+          {group.selfId !== group.hostId && group.groupHome && <p className="wait-note"><span /> L’hôte choisit le prochain jeu.</p>}
+          <ErrorText>{game.error}</ErrorText>
+        </section> : <form className="join-panel" onSubmit={(event) => { event.preventDefault(); game.enter('join', profile, { code }) }}>
           <div className="join-heading"><h2 className="display">Rejoindre un salon</h2><Users size={22} /></div>
           <label className="field-label" htmlFor="room-code">Code du salon</label>
-          <div className="code-input-wrap"><input id="room-code" className="code-input" placeholder="ABC123" autoComplete="off" spellCheck="false" maxLength={6} minLength={6} pattern="[A-Za-z0-9]{6}" required value={code} onChange={(event) => setCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} /><span>#</span></div>
+          <div className="code-input-wrap"><input id="room-code" className="code-input" placeholder="ABC" autoComplete="off" spellCheck="false" maxLength={legacyCode ? 6 : roomCodeLength} minLength={roomCodeLength} pattern={legacyCode ? '[A-Za-z0-9]{6}|[A-Za-z]{3}' : '[A-Za-z]{3}'} required value={code} onChange={(event) => setCode(event.target.value.toUpperCase().replace(legacyCode ? /[^A-Z0-9]/g : /[^A-Z]/g, '').slice(0, legacyCode ? 6 : roomCodeLength))} /><span>#</span></div>
           <label className="field-label" htmlFor="join-name">Ton pseudo</label>
           <input id="join-name" placeholder="Ex. Pixel42" autoComplete="nickname" required maxLength={20} value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} />
           <ProfileAppearance {...{ profile, setProfile, photoBusy, setPhotoBusy }} />
           <ErrorText>{game.error}</ErrorText>
           <button className="button outlined w-full justify-center" disabled={game.busy || photoBusy}>Rejoindre <ArrowRight size={17} /></button>
-        </form>
+        </form>}
       </div>
     </section>
-    <section className="themes" aria-labelledby="themes-title">
+    {canChoose && <section className="themes" aria-labelledby="themes-title">
       <div className="themes-heading"><h2 className="display" id="themes-title">Jouer par thème</h2><button className="sticker-toggle" type="button" onClick={() => setStickersPaused(!stickersPaused)}>{stickersPaused ? 'Afficher les stickers' : 'Masquer les stickers'}</button></div>
       <div className="theme-grid">
-        {categories.map((category) => <button type="button" className="theme-card" key={category.id} onClick={() => openSolo(category.id)} disabled={game.busy}><span className="theme-icon"><CategoryIcon category={category} size={19} /></span><span>{category.name}</span><ArrowRight className="theme-arrow" size={16} /></button>)}
+        {categories.map((category) => <button type="button" className="theme-card" key={category.id} onClick={() => openSolo(category.id)} disabled={game.busy || game.reconnecting}><span className="theme-icon"><CategoryIcon category={category} size={19} /></span><span>{category.name}</span><ArrowRight className="theme-arrow" size={16} /></button>)}
       </div>
-    </section>
+    </section>}
   </main>
 }
 
@@ -404,24 +445,34 @@ async function copyText(text) {
   try { return document.execCommand('copy') } catch { return false } finally { field.remove() }
 }
 
-function Lobby({ state, action, error }) {
-  const host = state.selfId === state.hostId
-  const canStart = state.players.length >= 2 || (state.local && Boolean(state.personality))
-  const Avatar = state.arcade ? ArcadeAvatar : PlayerAvatar
+function RoomInvite({ code }) {
   const [copied, setCopied] = useState('')
   async function copy(kind) {
     const url = new URL(location.href)
-    url.searchParams.set('room', state.code)
-    setCopied(await copyText(kind === 'code' ? state.code : url.toString()) ? kind : 'failed')
+    url.searchParams.set('room', code)
+    setCopied(await copyText(kind === 'code' ? code : url.toString()) ? kind : 'failed')
   }
+  return <div className="lobby-code"><div className="field-label">Code du groupe</div><strong className="display">{code}</strong><div className="flex flex-wrap gap-2"><button className="button small secondary" onClick={() => copy('code')}>{copied === 'code' ? <Check size={15} /> : <Copy size={15} />}{copied === 'code' ? 'Code copié' : 'Copier le code'}</button><button className="button small secondary" onClick={() => copy('link')}>{copied === 'link' ? <Check size={15} /> : <Copy size={15} />}{copied === 'link' ? 'Lien copié' : 'Copier le lien'}</button></div>{copied === 'failed' && <p className="field-note" role="status">Sélectionne le code pour le copier.</p>}</div>
+}
+
+function RoomPlayers({ state }) {
+  const Avatar = state.arcade ? ArcadeAvatar : PlayerAvatar
+  return <>
+    <div className="player-heading"><h2 className="display">Joueurs</h2><span><Users size={16} /> {state.players.length}{!state.local && ` / ${state.arcade ? arcadeLimit : 24}`}</span></div>
+    <ul className="player-list">{state.players.map((player) => <li key={player.id}><Avatar player={player} /><strong><PlayerName player={player} />{player.id === state.selfId && <small> (toi)</small>}</strong>{player.id === state.hostId && <span className="host-tag"><Crown size={14} /> Hôte</span>}{player.bot && <span className="host-tag bot-tag">Bot</span>}</li>)}</ul>
+  </>
+}
+
+function Lobby({ state, action, error }) {
+  const host = state.selfId === state.hostId
+  const canStart = state.players.length >= 2 || (state.local && Boolean(state.personality))
   return <main className="page-width game-page">
     <div className="game-heading"><h1 className="display">{state.local ? 'Partie solo' : 'Salon d’attente'}</h1></div>
     <div className="lobby-grid">
       <section className="panel lobby-players">
         {state.local ? <div className="lobby-code local-code"><Gamepad2 size={32}/><div><strong className="display">{state.personality ? 'Questionnaire en solo' : 'Solo contre les bots'}</strong>{!state.personality && <p>Pixel, Mochi et Glitch jouent avec toi.</p>}</div></div> :
-          <div className="lobby-code"><div className="field-label">Code du salon</div><strong className="display">{state.code}</strong><div className="flex flex-wrap gap-2"><button className="button small secondary" onClick={() => copy('code')}>{copied === 'code' ? <Check size={15} /> : <Copy size={15} />}{copied === 'code' ? 'Code copié' : 'Copier le code'}</button><button className="button small secondary" onClick={() => copy('link')}>{copied === 'link' ? <Check size={15} /> : <Copy size={15} />}{copied === 'link' ? 'Lien copié' : 'Copier le lien'}</button></div>{copied === 'failed' && <p className="field-note" role="status">Sélectionne le code pour le copier.</p>}</div>}
-        <div className="player-heading"><h2 className="display">Joueurs</h2><span><Users size={16} /> {state.players.length}{!state.local && ` / ${state.arcade ? arcadeLimit : 24}`}</span></div>
-        <ul className="player-list">{state.players.map((player) => <li key={player.id}><Avatar player={player} /><strong><PlayerName player={player} />{player.id === state.selfId && <small> (toi)</small>}</strong>{player.id === state.hostId && <span className="host-tag"><Crown size={14} /> Hôte</span>}{player.bot && <span className="host-tag bot-tag">Bot</span>}</li>)}</ul>
+          <RoomInvite code={state.code} />}
+        <RoomPlayers state={state} />
         <ErrorText>{error}</ErrorText>
         {host ? <><button className="button primary w-full justify-center mt-5" disabled={!canStart} onClick={() => action({ type: 'start' })}><Play size={19} fill="currentColor" /> {state.personality ? 'Lancer le questionnaire' : 'Lancer la partie'}</button>{!canStart && <p className="field-note text-center">Il faut au moins 2 joueurs pour démarrer.</p>}</> : <p className="wait-note"><span /> L’hôte lance la partie.</p>}
       </section>
@@ -594,23 +645,58 @@ function Leaderboard({ ranking, self }) {
   </li>)}</ol>
 }
 
-function Reveal({ state, action, error }) {
+function ResponseChoices({ selected, question, answer }) {
+  if (!selected?.length) return <span className="response-empty">Aucune réponse</span>
+  return <ul className="response-choices">{selected.map((choice) => {
+    const correct = choice === answer
+    const Icon = correct ? Check : X
+    return <li key={choice} data-correct={correct}><Icon size={16} aria-hidden="true" /><span className="sr-only">{correct ? 'Bonne réponse ' : 'Mauvaise réponse '}</span>{question.choices[choice]}</li>
+  })}</ul>
+}
+
+function Reveal({ state, action, clockOffset, reconnecting, error }) {
   const { result, question, personal } = state
   const host = state.hostId === state.selfId
   const last = state.index + 1 === state.settings.total
-  return <main className="page-width game-page">
-    <div className="game-heading"><div className="eyebrow">Question {state.index + 1} sur {state.settings.total}</div><h1 className="display">Résultats de la manche</h1></div>
+  const { seconds } = useClock({ start: result.nextAt - revealDuration, deadline: result.nextAt }, clockOffset)
+  const correct = personal.choices.includes(result.answer)
+  const verdict = correct ? 'correct' : personal.choices.length ? 'wrong' : 'timeout'
+  const VerdictIcon = correct ? Check : verdict === 'wrong' ? X : Clock3
+  const others = state.players.filter(({ id }) => id !== state.selfId)
+  const heading = useRef(null)
+  useEffect(() => { heading.current?.focus({ preventScroll: true }) }, [state.index])
+  return <main className="page-width game-page reveal-page" data-verdict={verdict}>
+    <header className="reveal-verdict">
+      <span className="reveal-verdict-icon"><VerdictIcon size={34} aria-hidden="true" /></span>
+      <div>
+        <p>Question {state.index + 1} sur {state.settings.total}</p>
+        <h1 className="display" ref={heading} tabIndex={-1}>{correct ? 'Bonne réponse !' : verdict === 'wrong' ? 'Mauvaise réponse' : 'Temps écoulé'}</h1>
+      </div>
+      <div className="reveal-points">
+        <strong>{personal.points ? '+' : ''}{score.format(personal.points)} pts</strong>
+        {personal.speedPoints > 0 && <span>dont +{score.format(personal.speedPoints)} de rapidité</span>}
+      </div>
+    </header>
     <div className="lobby-grid result-grid">
       <section className="panel result-panel">
-        <div className="section-head"><div><div className="field-label">Bonne réponse</div><h2 className="display">{question.choices[result.answer]}</h2></div><span className="good-icon"><Check size={26} /></span></div>
+        <div className="section-head"><div><div className="field-label">La bonne réponse</div><h2 className="display">{question.choices[result.answer]}</h2></div><span className="good-icon"><Check size={26} aria-hidden="true" /></span></div>
         <p className="result-question">{question.prompt}</p>
         {question.explanation && <p className="answer-explanation">{question.explanation}</p>}
-        <p className={personal.points ? 'earned correct' : 'earned'}>
-          {personal.points ? '+' + score.format(personal.points) + ' points pour toi' : '0 point sur cette question'}
-          {personal.speedPoints > 0 && <span>dont +{score.format(personal.speedPoints)} de rapidité</span>}
-        </p>
+        <div className="reveal-responses">
+          <h3 className="field-label">{personal.choices.length > 1 ? 'Tes réponses' : 'Ta réponse'}</h3>
+          <ResponseChoices selected={personal.choices} question={question} answer={result.answer} />
+          {others.length > 0 && <>
+            <h3 className="field-label">{state.local ? 'Réponses des bots' : 'Réponses des autres joueurs'}</h3>
+            <ul className="player-list">{others.map((player) => <li className="reveal-player" key={player.id}>
+              <PlayerAvatar player={player} />
+              <div><strong><PlayerName player={player} /></strong><ResponseChoices selected={result.responses[player.id]} question={question} answer={result.answer} /></div>
+            </li>)}</ul>
+          </>}
+        </div>
         <ErrorText>{error}</ErrorText>
-        {host ? <button className="button primary w-full justify-center mb-5" onClick={() => action({ type: 'next', round: state.index })}>{last ? 'Voir le podium' : 'Question suivante'} <ChevronRight size={21} /></button> : <p className="wait-note mb-4"><span /> En attente de l’hôte.</p>}
+        {host ? <button className="button primary w-full justify-center mb-5" disabled={seconds > 0 || reconnecting} onClick={() => action({ type: 'next', round: state.index })}>
+          {last ? 'Voir le podium' : 'Question suivante'}{seconds > 0 && ` (${seconds} s)`} <ChevronRight size={21} />
+        </button> : <p className="wait-note mb-4"><span /> En attente de l’hôte.</p>}
         {question.media && <QuestionMedia key={question.id} media={question.media} reveal />}
         {question.followUp && <QuestionMedia key={question.id + '-video'} media={question.followUp} reveal />}
         {question.source && <a className="question-source" href={question.source} target="_blank" rel="noreferrer">Source de la réponse <ArrowUpRight size={13} /></a>}
@@ -650,6 +736,7 @@ function App() {
   const [photoBusy, setPhotoBusy] = useState(false)
   const [code, setCode] = useState(codeFromUrl)
   const [modal, setModal] = useState('')
+  const [groupPreview, setGroupPreview] = useState(false)
   const [soloTheme, setSoloTheme] = useState(null)
   const [illustratedSpeedBonus, setIllustratedSpeedBonus] = useState(defaultSettings.speedBonus)
   const [personalityTest, setPersonalityTest] = useState('bizarre')
@@ -668,8 +755,25 @@ function App() {
   const isPersonalitySetup = modal === 'personality'
   const isArcadeSetup = modal === 'arcade'
   const self = state?.players.find(({ id }) => id === state.selfId)
-  useEffect(() => { window.scrollTo(0, 0) }, [state?.phase, state?.index])
+  const online = Boolean(state && !state.local)
+  const onlineHost = online && state.hostId === state.selfId
+  const showingHome = !state || state.groupHome || groupPreview
+  const canChooseArcade = !state || (state.groupHome && onlineHost)
+  useEffect(() => { window.scrollTo(0, 0) }, [state?.phase, state?.index, state?.groupHome])
+  useEffect(() => {
+    if (game.notice) {
+      setCode('')
+      setModal('')
+    }
+  }, [game.notice])
+  useEffect(() => {
+    if (!online || state.groupHome || state.phase === 'lobby') setGroupPreview(false)
+  }, [online, state?.groupHome, state?.phase])
   const openSolo = (theme = null) => {
+    if (state?.groupHome) {
+      game.action({ type: 'prepare', theme })
+      return
+    }
     setSoloTheme(theme)
     game.clearError()
     setModal('solo')
@@ -679,49 +783,83 @@ function App() {
     game.clearError()
     setModal('')
   }
-  const leave = () => { game.leave(); setCode(''); setModal('') }
+  const openCreate = () => {
+    game.clearError()
+    if (profile.name.trim() && !photoBusy) game.enter('create', profile, { groupHome: true })
+    else setModal('create')
+  }
+  const leave = async () => {
+    if (await game.leave()) {
+      setCode('')
+      setModal('')
+      setGroupPreview(false)
+    }
+  }
+  const goHome = async () => {
+    if (!state || showingHome) return
+    if (state.local) {
+      await leave()
+    } else if (onlineHost) {
+      if (await game.action({ type: 'group-home' })) setModal('')
+    } else {
+      setGroupPreview(true)
+      setModal('')
+      window.scrollTo(0, 0)
+    }
+  }
   async function enterFromModal(event) {
     event.preventDefault()
+    if (state?.groupHome) {
+      if (await game.action({ type: 'prepare', ...(isArcadeSetup ? { arcade: true } : { personalityTest }) })) setModal('')
+      return
+    }
     const mode = isPersonalitySetup ? personalityMode : modal === 'solo' ? 'local' : 'create'
-    const options = isArcadeSetup ? { arcade: true } : isPersonalitySetup ? { personalityTest } : { theme: soloTheme, speedBonus: isIllustrated ? illustratedSpeedBonus : defaultSettings.speedBonus }
+    const options = isArcadeSetup ? { arcade: true } : isPersonalitySetup ? { personalityTest } : modal === 'create' ? { groupHome: true } : { theme: soloTheme, speedBonus: isIllustrated ? illustratedSpeedBonus : defaultSettings.speedBonus }
     if (await game.enter(mode, profile, options)) setModal('')
   }
   return <>
     <header className="site-header"><div className="page-width header-inner">
-      <button className="home-link" aria-label="La Bande de Quiz, accueil" onClick={() => state && setModal('leave')}><Logo /></button>
+      <button className="home-link" aria-label="La Bande de Quiz, accueil" onClick={goHome}><Logo /></button>
       <div className="header-actions">
         {self && <div className="header-player"><PlayerAvatar player={self} /><span><PlayerName player={self} /><small>{state.local ? 'Solo' : 'En ligne'}</small></span></div>}
         <button type="button" className="header-help speech-button" data-enabled={speech.preferences.enabled && speech.supported} aria-haspopup="dialog" aria-label="Réglages de lecture vocale" title="Réglages de lecture vocale" onClick={() => setModal('speech')}><Volume2 size={17} /><span>Lecture vocale</span></button>
-        {state ? <button className="header-help quit-button" onClick={() => setModal('leave')}><ArrowLeft size={17} /> Quitter</button> : <button className="header-help" onClick={() => setModal('rules')}><CircleHelp size={17} /> Comment jouer</button>}
+        {online && !showingHome && <button className="header-help group-navigation" aria-label="Accueil du groupe" onClick={goHome}><ArrowLeft size={17} /> <span>Accueil</span></button>}
+        {state ? <button className={`header-help quit-button${online ? ' group-navigation' : ''}`} aria-label={online ? 'Quitter le groupe' : 'Quitter la partie'} onClick={() => setModal('leave')}><X size={17} /> <span>{online ? 'Quitter le groupe' : 'Quitter'}</span></button> : <button className="header-help" onClick={() => setModal('rules')}><CircleHelp size={17} /> Comment jouer</button>}
       </div>
     </div></header>
     {game.reconnecting && <div className="connection-banner" role="status">Connexion interrompue. Reconnexion au salon…</div>}
-    {!state && <Home game={game} {...{ profile, setProfile, photoBusy, setPhotoBusy, code, setCode, openSolo }} openCreate={() => { game.clearError(); setModal('create') }} openPersonality={() => { game.clearError(); setModal('personality') }} />}
+    {game.notice && <div className="connection-banner" role="status">{game.notice}</div>}
+    {showingHome ? <Home game={game} group={online ? state : null} resumeGame={() => { setGroupPreview(false); window.scrollTo(0, 0) }} {...{ profile, setProfile, photoBusy, setPhotoBusy, code, setCode, openSolo, openCreate }} openPersonality={() => { game.clearError(); setModal('personality') }} /> : <>
     {state?.phase === 'lobby' && <Lobby state={state} action={game.action} error={game.error} />}
     {state?.phase === 'question' && <Question state={state} action={game.action} clockOffset={game.clockOffset} error={game.error} reconnecting={game.reconnecting} speech={speech} />}
-    {state?.phase === 'reveal' && <Reveal state={state} action={game.action} error={game.error} />}
-    {state?.phase === 'final' && <Final state={state} action={game.action} leave={leave} error={game.error} />}
+    {state?.phase === 'reveal' && <Reveal state={state} action={game.action} clockOffset={game.clockOffset} reconnecting={game.reconnecting} error={game.error} />}
+    {state?.phase === 'final' && <Final state={state} action={game.action} leave={goHome} error={game.error} />}
     {state?.phase === 'personality' && <PersonalityRound state={state} action={game.action} reconnecting={game.reconnecting} speech={speech} error={game.error} />}
-    {state?.phase === 'personality-final' && <PersonalityResults state={state} action={game.action} leave={leave} error={game.error} />}
+    {state?.phase === 'personality-final' && <PersonalityResults state={state} action={game.action} leave={goHome} error={game.error} />}
     {state?.phase === 'arcade' && <ArcadeRound state={state} frameRef={game.arcadeFrame} aim={game.aimArcade} paused={Boolean(modal)} reconnecting={game.reconnecting} error={game.error} />}
-    {state?.phase === 'arcade-final' && <ArcadeResults state={state} action={game.action} leave={leave} error={game.error} />}
+    {state?.phase === 'arcade-final' && <ArcadeResults state={state} action={game.action} leave={goHome} error={game.error} />}
+    </>}
     <footer className="site-footer page-width"><Logo />
-      {!state && <button className="arcade-trigger" type="button" aria-label="Ouvrir l’arcade secrète" title="Arcade secrète" disabled={game.busy} onClick={() => { game.clearError(); setModal('arcade') }}><Gamepad2 size={18} /></button>}
+      {canChooseArcade && <button className="arcade-trigger" type="button" aria-label="Ouvrir l’arcade secrète" title="Arcade secrète" disabled={game.busy || game.reconnecting} onClick={() => { game.clearError(); setModal('arcade') }}><Gamepad2 size={18} /></button>}
       <p>Créé par <a href="https://www.malbroye.fr" target="_blank" rel="noopener noreferrer">Malbroye Studio</a></p>
     </footer>
-    {['create', 'solo', 'personality', 'arcade'].includes(modal) && <Modal close={close} className={isPersonalitySetup ? 'personality-modal' : ''} title={isArcadeSetup ? 'Snake des potes' : isPersonalitySetup ? 'Tests de personnalité' : modal === 'solo' ? 'Ton profil solo' : 'Créer un salon'}><form className="modal-form" onSubmit={enterFromModal}>
-      {isPersonalitySetup && <PersonalitySetup testId={personalityTest} setTestId={setPersonalityTest} mode={personalityMode} setMode={setPersonalityMode} />}
-      {isArcadeSetup && <><p>Une arène en ligne pour 2 ou 3 potes. Partage le code du salon pour les inviter.</p><p className="field-note">Les pseudos Axel, Mathis et Flo chargent vos têtes de l’accueil. Tu peux aussi ajouter ta photo dans le profil.</p></>}
-      {modal === 'create' && <p>Tu pourras partager le code du salon avec tes amis.</p>}
+    {['create', 'solo', 'personality', 'arcade'].includes(modal) && <Modal close={close} className={isPersonalitySetup ? 'personality-modal' : ''} title={isArcadeSetup ? 'Snake des potes' : isPersonalitySetup ? 'Tests de personnalité' : modal === 'solo' ? 'Ton profil solo' : 'Créer un groupe'}><form className="modal-form" onSubmit={enterFromModal}>
+      {isPersonalitySetup && <PersonalitySetup testId={personalityTest} setTestId={setPersonalityTest} mode={personalityMode} setMode={setPersonalityMode} grouped={state?.groupHome} />}
+      {isArcadeSetup && <><p>{state?.groupHome ? 'Prépare Snake pour ton groupe de 2 ou 3 joueurs.' : 'Une arène en ligne pour 2 ou 3 potes. Partage le code du salon pour les inviter.'}</p>{!state?.groupHome && <p className="field-note">Les pseudos Axel, Mathis et Flo chargent vos têtes de l’accueil. Tu peux aussi ajouter ta photo dans le profil.</p>}</>}
+      {modal === 'create' && <p>Invite tes potes avec le code à trois lettres. Vous pourrez enchaîner les parties dans le même groupe.</p>}
       {modal === 'solo' && selectedTheme && <p>{isIllustrated ? 'Quiz illustré · Images et vidéos' : selectedTheme.name}</p>}
-      <label className="field-label">Ton pseudo<input autoFocus={!isPersonalitySetup} autoComplete="nickname" placeholder="Ex. Pixel42" required maxLength={20} value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} /></label>
-      <ProfileAppearance {...{ profile, setProfile, photoBusy, setPhotoBusy }} />
+      {!state?.groupHome && <><label className="field-label">Ton pseudo<input autoFocus={!isPersonalitySetup} autoComplete="nickname" placeholder="Ex. Pixel42" required maxLength={20} value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} /></label>
+      <ProfileAppearance {...{ profile, setProfile, photoBusy, setPhotoBusy }} /></>}
       {modal === 'solo' && isIllustrated && <SpeedBonusSetting enabled={illustratedSpeedBonus} onChange={setIllustratedSpeedBonus} />}
-      <ErrorText>{game.error}</ErrorText><button className="button primary w-full justify-center" disabled={game.busy || photoBusy}>{modal === 'solo' ? <Gamepad2 size={19} /> : <Globe2 size={19} />} {game.busy ? 'Connexion…' : isPersonalitySetup && personalityMode === 'local' ? 'Lancer le test' : modal === 'solo' ? (isIllustrated ? 'Lancer le quiz' : 'Continuer') : 'Créer le salon'} <ArrowRight size={18} /></button>
+      <ErrorText>{game.error}</ErrorText><button className="button primary w-full justify-center" disabled={game.busy || photoBusy || game.reconnecting}>{modal === 'solo' ? <Gamepad2 size={19} /> : <Globe2 size={19} />} {game.busy ? 'Connexion…' : state?.groupHome ? 'Jouer avec le groupe' : isPersonalitySetup && personalityMode === 'local' ? 'Lancer le test' : modal === 'solo' ? (isIllustrated ? 'Lancer le quiz' : 'Continuer') : modal === 'create' ? 'Créer le groupe' : 'Créer le salon'} <ArrowRight size={18} /></button>
     </form></Modal>}
     {modal === 'speech' && <Modal close={close} title="Lecture vocale"><SpeechSettings speech={speech} /></Modal>}
     {modal === 'rules' && <Modal close={close} title="Comment jouer"><ol className="rules-list"><li><Users size={22} /><div><strong>Forme ton salon</strong><p>Partage le code avec tes amis ou lance une partie solo avec trois bots.</p></div></li><li><Zap size={22} /><div><strong>Marque des points</strong><p>Enchaîne les bonnes réponses pour gagner un bonus de série. Si l’hôte active le bonus de rapidité, les bonnes réponses les plus rapides rapportent davantage.</p></div></li><li><Sparkles size={22} /><div><strong>Utilise tes jokers</strong><p>Retire des choix, consulte le sondage, tente une deuxième réponse ou prends dix secondes de plus.</p></div></li></ol><button className="button outlined w-full justify-center" onClick={close}>Compris <Check size={18}/></button></Modal>}
-    {modal === 'leave' && <Modal close={close} title="Quitter la partie ?"><p className="modal-message">Tu vas retourner à l’accueil.</p><div className="flex flex-wrap gap-3"><button className="button secondary" onClick={close}>Rester</button><button className="button primary" onClick={leave}>Quitter</button></div></Modal>}
+    {modal === 'leave' && <Modal close={close} title={onlineHost ? 'Fermer le salon ?' : 'Quitter la partie ?'}>
+      <p className="modal-message">{onlineHost ? 'Tous les joueurs seront renvoyés à l’accueil.' : 'Tu vas retourner à l’accueil.'}</p>
+      <ErrorText>{game.error}</ErrorText>
+      <div className="flex flex-wrap gap-3"><button className="button secondary" onClick={close} disabled={game.leaving}>Rester</button><button className="button primary" onClick={leave} disabled={game.leaving}>{onlineHost ? 'Fermer le salon' : 'Quitter'}</button></div>
+    </Modal>}
   </>
 }
 
