@@ -321,7 +321,11 @@ input::placeholder { color: var(--muted); opacity: 1; }
 .image-modal img { display: block; width: 100%; height: auto; max-height: calc(100dvh - 135px); min-height: 0; object-fit: contain; border-radius: 5px; background: #101010; }
 .image-modal p { margin: 7px 4px 2px; color: var(--muted); font-size: 12px; }
 .modal-form { display: grid; gap: 12px; margin-top: 12px; }
+.personality-modal { width: min(660px, calc(100% - 30px)); }
 .personality-setup { display: grid; gap: 6px; }
+@media (min-width: 520px) {
+  .personality-setup { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .personality-test-option, .personality-formats label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .personality-test-option { padding: 8px; border: 1px solid var(--line); border-radius: 6px; }
 .personality-test-option:has(input:checked) { border-color: var(--gold-line); background: var(--gold-soft); }

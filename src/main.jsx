@@ -8,7 +8,7 @@ import {
 import '@fontsource-variable/geist'
 import { act, avatars, counts, createRoom, defaultSettings, durations, jokerFitsQuestion, jokers, maxSpeedBonus, mergeQuestionHistory, questionCounts, tick, view } from '../shared/game.js'
 import { categories, illustratedCategory, themeOptions } from '../shared/questions.js'
-import { getPersonalityTest } from '../shared/personality.js'
+import { getPersonalityQuestion } from '../shared/personality.js'
 import { PlayerAvatar, PlayerName, ProfileAppearance } from './profile.jsx'
 import { PersonalityIntro, PersonalityResults, PersonalityRound, PersonalitySetup } from './personality.jsx'
 import { SpeechSettings, useQuestionSpeech } from './speech.jsx'
@@ -316,7 +316,7 @@ function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, 
           <span className="illustrated-arrow"><ArrowRight size={20} /></span>
         </button>
         <button className="personality-entry" type="button" onClick={openPersonality} disabled={game.busy}>
-          <HeartHandshake size={23} /><span><strong>Tests de personnalité</strong><small>En couple ou entre potes, quel rôle tu joues ?</small></span><ArrowRight size={18} />
+          <HeartHandshake size={23} /><span><strong>Tests de personnalité</strong><small>8 questions, un verdict absurde. En solo ou entre potes.</small></span><ArrowRight size={18} />
         </button>
       </div>
       <div className="hero-side">
@@ -643,11 +643,11 @@ function App() {
   const [modal, setModal] = useState('')
   const [soloTheme, setSoloTheme] = useState(null)
   const [illustratedSpeedBonus, setIllustratedSpeedBonus] = useState(defaultSettings.speedBonus)
-  const [personalityTest, setPersonalityTest] = useState('couple')
+  const [personalityTest, setPersonalityTest] = useState('bizarre')
   const [personalityMode, setPersonalityMode] = useState('create')
   const activeQuestion = state?.phase === 'question' ? state.question : null
   const activeTest = state?.phase === 'personality' ? state.personality : null
-  const testPrompt = activeTest && getPersonalityTest(activeTest.testId).questions[activeTest.step]?.[0]
+  const testPrompt = activeTest && getPersonalityQuestion(activeTest.testId, activeTest.step, activeTest)?.[0]
   const speech = useQuestionSpeech(
     activeQuestion?.prompt ?? testPrompt,
     activeQuestion ? `${state.code}/${state.index}/${state.personal.start}/${activeQuestion.id}` : activeTest && `${state.code}/${activeTest.run}/${activeTest.step}`,
@@ -694,11 +694,11 @@ function App() {
     {state?.phase === 'personality' && <PersonalityRound state={state} action={game.action} reconnecting={game.reconnecting} speech={speech} error={game.error} />}
     {state?.phase === 'personality-final' && <PersonalityResults state={state} action={game.action} leave={leave} error={game.error} />}
     <footer className="site-footer page-width"><Logo /><p>Créé par <a href="https://www.malbroye.fr" target="_blank" rel="noopener noreferrer">Malbroye Studio</a></p></footer>
-    {['create', 'solo', 'personality'].includes(modal) && <Modal close={close} title={isPersonalitySetup ? 'Tests de personnalité' : modal === 'solo' ? 'Ton profil solo' : 'Créer un salon'}><form className="modal-form" onSubmit={enterFromModal}>
+    {['create', 'solo', 'personality'].includes(modal) && <Modal close={close} className={isPersonalitySetup ? 'personality-modal' : ''} title={isPersonalitySetup ? 'Tests de personnalité' : modal === 'solo' ? 'Ton profil solo' : 'Créer un salon'}><form className="modal-form" onSubmit={enterFromModal}>
       {isPersonalitySetup && <PersonalitySetup testId={personalityTest} setTestId={setPersonalityTest} mode={personalityMode} setMode={setPersonalityMode} />}
       {modal === 'create' && <p>Tu pourras partager le code du salon avec tes amis.</p>}
       {modal === 'solo' && selectedTheme && <p>{isIllustrated ? 'Quiz illustré · Images et vidéos' : selectedTheme.name}</p>}
-      <label className="field-label">Ton pseudo<input autoFocus autoComplete="nickname" placeholder="Ex. Pixel42" required maxLength={20} value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} /></label>
+      <label className="field-label">Ton pseudo<input autoFocus={!isPersonalitySetup} autoComplete="nickname" placeholder="Ex. Pixel42" required maxLength={20} value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} /></label>
       <ProfileAppearance {...{ profile, setProfile, photoBusy, setPhotoBusy }} />
       {modal === 'solo' && isIllustrated && <SpeedBonusSetting enabled={illustratedSpeedBonus} onChange={setIllustratedSpeedBonus} />}
       <ErrorText>{game.error}</ErrorText><button className="button primary w-full justify-center" disabled={game.busy || photoBusy}>{modal === 'solo' ? <Gamepad2 size={19} /> : <Globe2 size={19} />} {game.busy ? 'Connexion…' : isPersonalitySetup && personalityMode === 'local' ? 'Lancer le test' : modal === 'solo' ? (isIllustrated ? 'Lancer le quiz' : 'Continuer') : 'Créer le salon'} <ArrowRight size={18} /></button>

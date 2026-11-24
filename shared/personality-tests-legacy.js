@@ -1,0 +1,51 @@
+// Questionnaires des salons sauvegardés avant la révision 2.
+export const legacyPersonalityTests = {
+  couple: {
+    title: 'Quel genre de partenaire es-tu ?',
+    description: 'Amour, confiance et petites embrouilles du quotidien.',
+    profiles: [
+      { title: 'Le romantique sans budget', detail: 'Tu vois une soirée pâtes et tu prépares déjà la bande-annonce. Pour toi, l’amour se planque dans les petites attentions et les dates improvisées.', line: '« J’ai rien prévu. » Tu as prévu une playlist.' },
+      { title: 'Le pilier du canapé', detail: 'Tu prouves ton amour en étant là, surtout quand la journée a été longue. Avec toi, on peut traverser une tempête et retrouver un plaid au bout.', line: '« Pose-toi, je m’occupe du dessert. »' },
+      { title: 'Le libre-service affectif', detail: 'Tu aimes à fond et tu laisses de la place à chacun. Deux personnes, deux vies, et un tas d’histoires à se raconter quand elles se retrouvent.', line: '« Amuse-toi bien. Tu me raconteras tout demain. »' },
+      { title: 'Le conseil de couple permanent', detail: 'Tu poses la question que tout le monde évite et tu cherches une solution à deux. Une simple histoire de vaisselle peut vite devenir une réunion de dix minutes.', line: '« Attends, on parle de l’assiette ou de ce qu’elle représente ? »' },
+    ],
+    questions: [
+      ['Pour toi, l’amour, ça se voit surtout quand…', 'On a pensé à toi en passant devant ta boulangerie préférée.', 'Quelqu’un tient parole, même pour les petites choses.', 'On peut être très proches et faire chacun sa vie aussi.', 'On peut se dire les choses franchement et rester une équipe.'],
+      ['La confiance dans un couple, ça ressemble à quoi ?', 'Pouvoir raconter ses plus gros moments de honte.', 'Savoir que l’autre répondra présent si ça tourne mal.', 'Ne pas avoir besoin de fouiller dans son téléphone.', 'Savoir qu’on parlera du problème avant qu’il grossisse.'],
+      ['Un vendredi soir libre à deux, tu proposes quoi ?', 'Un pique-nique improvisé, même si on finit dans le salon.', 'Notre plat préféré et une série qu’on connaît déjà.', 'On voit sur le moment. Je refuse de réserver mon canapé.', 'Chacun propose un plan et on tire au sort.'],
+      ['Après une petite dispute, ton premier réflexe ?', 'Faire un geste tendre et reprendre la conversation après.', 'Laisser retomber la pression puis prendre des nouvelles.', 'Sortir prendre l’air. Une fois calme, je reviens.', 'Mettre des mots précis sur ce qui m’a vexé.'],
+      ['L’autre part tout un week-end avec ses potes. Toi ?', 'Je lui glisse un mot ridicule dans son sac.', 'Je lui dis de me prévenir quand il ou elle arrive.', 'Je cale mon propre week-end. Tout le monde y gagne.', 'On se dit comment on se tient au courant et c’est réglé.'],
+      ['Tu prépares quoi pour marquer une date qui compte ?', 'Une surprise avec une référence que nous deux comprenons.', 'Le dîner qu’on se promet depuis trois semaines.', 'Une journée libre, à inventer ensemble du début à la fin.', 'Je demande ce qui ferait vraiment plaisir et je l’organise.'],
+      ['Un détail du quotidien qui te fait craquer ?', 'Un surnom inventé que personne d’autre ne comprend.', 'Une tasse prête à côté de la bouilloire le matin.', 'Quelqu’un qui respecte mon besoin d’être tranquille.', 'Un « t’as raison » dit sincèrement au beau milieu d’un débat.'],
+      ['Vous avez choisi deux destinations différentes. Comment vous tranchez ?', 'Je prépare deux mini-présentations beaucoup trop théâtrales.', 'On commence par l’endroit où on se sentira le mieux tous les deux.', 'Chacun peut partir aussi avec ses potes. Rien n’oblige à choisir une seule destination.', 'On fixe un budget, on compare, puis on décide ensemble.'],
+      ['Quand l’autre a eu une journée horrible, tu fais quoi ?', 'J’arrive avec son snack préféré et une blague vraiment nulle.', 'Je prends en charge le truc qui lui pèse, puis je reste là.', 'Je lui propose de souffler seul ou à deux, au choix.', 'Je demande si la personne veut être écoutée ou chercher une solution.'],
+      ['Quel message a le plus de chances de venir de toi ?', '« J’ai vu un pigeon qui te ressemblait. Tu me manques. »', '« Rentre tranquille, le dîner est chaud. »', '« Je pars en balade sans mon tel, à tout à l’heure ! »', '« On se garde dix minutes ce soir pour en parler ? »'],
+      ['Qu’est-ce qui aide le plus un couple à durer ?', 'Garder des surprises, même petites et même nulles.', 'Se donner des preuves de fiabilité au fil des jours.', 'Avoir des projets ensemble et des passions à soi.', 'Dire la vérité avant que les non-dits prennent toute la place.'],
+      ['On vous confie le titre de votre film de couple. Tu choisis…', 'Deux cœurs et un pain au chocolat.', 'Le plaid de la dernière chance.', 'On se retrouve au générique.', 'Le compte rendu du grand amour.'],
+    ],
+  },
+  potes: {
+    title: 'Qui es-tu dans le groupe de potes ?',
+    description: 'Apéros, galères et messages laissés en « vu » dans le groupe.',
+    profiles: [
+      { title: 'Le moteur à embrouilles gentilles', detail: 'Une phrase de toi et tout le monde change de plan. Le lendemain, personne ne se souvient qui a eu l’idée. C’était toi.', line: '« J’ai trouvé un deuxième endroit. »' },
+      { title: 'L’ami qui a pensé au chargeur', detail: 'Tu as le code, le câble et le numéro du pote qui connaît quelqu’un. Sans toi, le groupe serait encore devant la mauvaise porte.', line: '« Je vous ai envoyé l’adresse trois fois. »' },
+      { title: 'Le fantôme en livraison express', detail: 'Tu mets trois heures à lire le premier message. Au moment où tout le monde te croit absent, tu débarques avec exactement ce qu’il fallait.', line: '« C’est encore bon si j’arrive ? »' },
+      { title: 'L’archiviste du chaos', detail: 'Tu observes, tu retiens, et trois mois plus tard tu ressors la phrase qui enterre tout le monde. Le groupe te doit la moitié de ses blagues privées.', line: '« Attends, j’ai la capture. »' },
+    ],
+    questions: [
+      ['Quelqu’un propose « on fait quoi ce soir ? » dans le groupe. Tu réponds…', '« Tout le monde chez moi, je vous explique après. »', '« Qui est dispo, vers quelle heure, et qui conduit ? »', 'Je lis, je me dis que je répondrai, puis je rate le débat.', 'Je ressors le dernier « on fait quoi » qui a fini à l’autre bout de la ville.'],
+      ['Tu arrives à une soirée où tu connais une seule personne.', 'Dix minutes plus tard, j’ai lancé un jeu.', 'Je donne un coup de main à la cuisine pour prendre mes marques.', 'Je cherche mon pote avec un verre à la main.', 'Je repère le coin d’où j’entendrai les meilleures histoires.'],
+      ['Un pote a oublié son portefeuille. Tu fais quoi ?', 'Je l’envoie négocier un paiement en compliments avant de dépanner.', 'Je paie pour lui et je lui envoie le montant demain.', 'Je retrouve un billet froissé au fond de ma poche. Surprise générale.', 'Je note sa tête quand il l’a réalisé. On en reparlera.'],
+      ['Pour un week-end entre amis, c’est toi qui apportes…', 'Un objet inutile qui devient la mascotte officielle du séjour.', 'Le chargeur, la multiprise et un paquet de secours.', 'Un sac fait huit minutes avant de partir.', 'Une playlist et des anecdotes embarrassantes pour la route.'],
+      ['Le plat qu’on attend depuis une heure n’arrive toujours pas.', 'Je lance un concours du pire avis gastronomique imaginaire.', 'Je demande poliment où en est la commande.', 'J’avais caché un paquet de chips. Je le partage.', 'Je retiens l’heure exacte à laquelle on a tous dit « ça arrive ».'],
+      ['Tu gagnes un jeu de société. Quelle est ta réaction ?', 'Je propose immédiatement une finale en trois manches.', 'Je range les cartes pendant que les autres débattent du règlement.', 'Je demande comment j’ai gagné. Je n’écoutais plus.', 'Je cite mot pour mot celui qui disait que je n’avais aucune chance.'],
+      ['Le groupe hésite entre deux plans depuis vingt minutes.', 'Je lance un troisième plan plus absurde qui finit par gagner.', 'Je fais un sondage et je réserve.', 'Je suis partant pour le dernier plan que j’ai compris.', 'Je prends des notes pour faire le résumé le plus méchant possible.'],
+      ['Ton rôle dans un groupe de vacances selon toi ?', 'Improviser la sortie dont personne n’avait envie avant qu’elle arrive.', 'Tenir la carte et retrouver le chemin quand ça tourne mal.', 'Apparaître au moment du dessert, même sans couverture réseau.', 'Donner un titre à chaque journée, surtout aux pires.'],
+      ['Un inconnu vous propose de chanter au karaoké.', 'Je monte et je recrute deux volontaires de force morale.', 'Je cherche la chanson dont tout le monde connaît le refrain.', 'Je me fonds dans le groupe jusqu’à ce qu’on m’appelle par mon prénom.', 'Je donne un nom de tournée au groupe avant même le premier couplet.'],
+      ['Le groupe ouvre un album de photos. Que trouves-tu ?', 'Un selfie trop près de mon visage à une heure impossible.', 'Des photos nettes, avec tout le monde sur la même.', 'Deux photos sur lesquelles j’apparais sans savoir quand.', 'La photo floue qui explique le mieux toute la soirée.'],
+      ['On t’envoie « viens, ça va être calme ». Tu penses…', '« Ils ont donc besoin de moi. »', '« Je vérifie d’abord comment on rentre. »', '« J’arrive dans dix minutes. » C’est rarement vrai.', '« Magnifique. Encore une phrase qui va mal vieillir. »'],
+      ['Quel est ton talent secret dans le groupe ?', 'Transformer une course à la boulangerie en sortie de trois heures.', 'Faire rentrer les plans de huit personnes dans un seul message.', 'Réapparaître au bon moment avec un paquet de bonbons.', 'Me rappeler une vanne que son auteur a oubliée depuis 2017.'],
+    ],
+  },
+}

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, BarChart3, Check, HeartHandshake, Sparkles, Square, Users, Volume2 } from 'lucide-react'
-import { getPersonalityTest, personalityTests } from '../shared/personality.js'
+import { getPersonalityQuestion, getPersonalityTest, personalityTests } from '../shared/personality.js'
 import { PlayerAvatar, PlayerName } from './profile.jsx'
 
 const letters = 'ABCD'
@@ -28,13 +28,13 @@ export function PersonalityIntro({ testId }) {
     <HeartHandshake size={26} />
     <h2 className="display">{test.title}</h2>
     <p>{test.description}</p>
-    <p className="field-note">{test.questions.length} questions, à ton rythme. Comparez vos profils et les votes du groupe à la fin.</p>
+    <p className="field-note">{test.questions.length} questions, à ton rythme. Vous pourrez comparer vos profils et vos votes à la fin.</p>
   </section>
 }
 
 export function PersonalityRound({ state, action, error, reconnecting, speech }) {
   const { testId, step, total, complete, canFinish, run } = state.personality
-  const question = getPersonalityTest(testId).questions[step]
+  const question = getPersonalityQuestion(testId, step, state.personality)
   const heading = useRef(null)
   const [sending, setSending] = useState(false)
   useEffect(() => {
@@ -73,8 +73,8 @@ export function PersonalityRound({ state, action, error, reconnecting, speech })
 }
 
 export function PersonalityResults({ state, action, leave, error }) {
-  const { testId, profiles, votes } = state.personality
-  const test = getPersonalityTest(testId)
+  const { testId, profiles, votes, legacy } = state.personality
+  const test = getPersonalityTest(testId, legacy)
   const ownProfile = profiles.find(({ id }) => id === state.selfId)
   return <main className="page-width game-page personality-page">
     <div className="game-heading"><div className="eyebrow">{test.title}</div><h1 className="display">{ownProfile ? 'Ton profil' : 'Les profils du groupe'}</h1></div>
@@ -92,7 +92,7 @@ export function PersonalityResults({ state, action, leave, error }) {
       <details className="panel personality-votes">
         <summary><BarChart3 size={21} /> Voir les votes du groupe</summary>
         {votes.map((counts, index) => <section key={index} className="personality-poll">
-          <h3>{test.questions[index][0]}</h3>
+          <h3>{getPersonalityQuestion(testId, index, state.personality)[0]}</h3>
           <ul>{counts.map((count, choice) => <li key={choice}>
             <span>{test.questions[index][choice + 1]}</span><strong>{count} {count === 1 ? 'vote' : 'votes'}</strong>
             <div className="vote-track" aria-hidden="true"><i style={{ width: `${count / profiles.length * 100}%` }} /></div>
