@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { act, addPlayer, createRoom, makeCode, normalizeRoomCode, removePlayer, setConnected, tick, view } from '../shared/game.js'
 import { aimArcade, arcadeFrame, arcadeStep, tickArcade } from '../shared/arcade.js'
+import { addRoomMessage } from '../shared/lobby-chat.js'
 
 const isDevelopment = process.argv.includes('--dev')
 const app = express()
@@ -115,7 +116,7 @@ io?.on('connection', (socket) => {
   handle('enter', (payload, now) => {
     if (socket.data.session) {
       const { record, id, token } = socket.data.session
-      return { state: view(record.room, id, now), token }
+      return { state: view(record.room, id, now), token, chat: record.chat ?? [] }
     }
     if (payload?.mode === 'resume') {
       const record = rooms.get(payload.code)
@@ -124,7 +125,7 @@ io?.on('connection', (socket) => {
       if (!id || !record.room.players.has(id)) throw new Error('Ta place a expiré. Rejoins le salon avec son code.')
       attach(socket, record, id, payload.token)
       publish(record, now)
-      return { state: view(record.room, id, now), token: payload.token }
+      return { state: view(record.room, id, now), token: payload.token, chat: record.chat ?? [] }
     }
     const token = randomUUID()
     let record
@@ -148,13 +149,23 @@ io?.on('connection', (socket) => {
     record.tokens.set(token, player.id)
     attach(socket, record, player.id, token)
     publish(record, now)
-    return { state: view(record.room, player.id, now), token }
+    return { state: view(record.room, player.id, now), token, chat: record.chat ?? [] }
   })
 
   handle('avatar-preview', (playerId) => {
     const session = socket.data.session
     if (!session || session.record.sockets.get(session.id) !== socket) throw new Error('Rejoins un salon pour voir la photo.')
     return { photo: session.record.room.players.get(playerId)?.photoPreview ?? null }
+  })
+
+  handle('chat-send', (text, now) => {
+    const session = socket.data.session
+    if (!session || session.record.sockets.get(session.id) !== socket) throw new Error('Rejoins un salon pour écrire.')
+    const { record, id } = session
+    const message = addRoomMessage(record, id, text, now, randomUUID())
+    for (const member of record.sockets.values()) {
+      if (member.connected) member.emit('chat-message', { code: record.room.code, message })
+    }
   })
 
   handle('action', (input, now) => {

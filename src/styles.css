@@ -153,6 +153,28 @@ input::placeholder { color: var(--muted); opacity: 1; }
 .game-heading { margin-bottom: 21px; }
 .game-heading h1 { font-size: clamp(33px, 5vw, 51px); margin-top: 4px; }
 .lobby-grid { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 16px; align-items: start; }
+.lobby-social { display: grid; gap: 12px; min-width: 0; }
+.hero-side > .lobby-chat { margin-top: 12px; }
+.lobby-chat h2 { display: flex; align-items: center; gap: 8px; font-size: 19px; }
+.lobby-chat h2 svg { color: var(--gold); }
+.lobby-chat-log { display: grid; align-content: start; gap: 7px; height: clamp(132px, 30vh, 230px); overflow-y: auto; overscroll-behavior: contain; margin: 11px 0; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-dark); }
+.lobby-chat-empty { padding: 4px; color: var(--muted); font-size: 13px; }
+.lobby-chat-message { padding: 6px 8px; border-radius: 5px; background: var(--panel); overflow-wrap: anywhere; }
+.lobby-chat-message[data-own="true"] { border-inline-start: 2px solid var(--gold); }
+.lobby-chat-message > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 7px; }
+.lobby-chat-message strong { font-size: 12px; }
+.lobby-chat-message time { font-size: 11px; color: var(--muted); }
+.lobby-chat-message p { font-size: 14px; }
+.lobby-chat-compose { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+.lobby-chat-compose .button { padding-inline: 12px; }
+.lobby-chat-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lobby-chat-heading .icon-button { width: 32px; height: 32px; }
+.room-chat-dock { position: fixed; z-index: 20; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); display: grid; justify-items: end; gap: 7px; width: min(340px, calc(100vw - 24px)); pointer-events: none; }
+.room-chat-dock > * { pointer-events: auto; }
+.room-chat-dock > .lobby-chat { width: 100%; padding: 13px; box-shadow: 0 10px 38px #000b; }
+.room-chat-dock .lobby-chat-log { height: min(220px, 30dvh); }
+.room-chat-trigger { box-shadow: 0 3px 14px #0008; }
+.room-chat-unread { min-width: 22px; padding: 1px 5px; border-radius: 4px; background: var(--bg); color: var(--gold); text-align: center; font-size: 11px; }
 .panel { padding: 20px; border: 1px solid var(--line); background: var(--panel); border-radius: 9px; }
 .lobby-code { background: var(--panel-dark); border: 1px solid var(--line); border-radius: 7px; padding: 14px; }
 .lobby-code > strong { display: block; font-size: 52px; color: var(--gold); line-height: 1; letter-spacing: .12em; margin: 3px 0 12px; }

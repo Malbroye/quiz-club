@@ -9,9 +9,11 @@ import '@fontsource-variable/geist'
 import { act, avatars, counts, createRoom, defaultSettings, durations, jokerFitsQuestion, jokers, maxSpeedBonus, mergeQuestionHistory, normalizeRoomCode, questionCounts, questionPool, revealDuration, roomCodeLength, tick, view } from '../shared/game.js'
 import { categories, homeThemes, illustratedCategory, themeOptions } from '../shared/questions.js'
 import { getPersonalityQuestion } from '../shared/personality.js'
+import { chatHistoryLimit } from '../shared/lobby-chat.js'
 import { arcadeLimit } from '../shared/arcade.js'
 import { ArcadeIntro, ArcadeResults, ArcadeRound, headSource } from './arcade.jsx'
 import { PlayerAvatar, PlayerName, ProfileAppearance } from './profile.jsx'
+import { LobbyChat, RoomChatDock } from './lobby-chat.jsx'
 import { PersonalityIntro, PersonalityResults, PersonalityRound, PersonalitySetup } from './personality.jsx'
 import { SpeechSettings, useQuestionSpeech } from './speech.jsx'
 import { heroLines, illustratedCovers, pickHomeItem } from './home-content.js'
@@ -72,6 +74,7 @@ function loadSocket() {
 
 function useGame() {
   const [state, setState] = useState(null)
+  const [chat, setChat] = useState([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [reconnecting, setReconnecting] = useState(false)
@@ -110,6 +113,11 @@ function useGame() {
     if (socket.current) return socket.current
     const client = io({ autoConnect: false, reconnection: true, timeout: 3500 })
     client.on('state', (next) => { if (socket.current === client && !ignoreState.current) receive(next) })
+    client.on('chat-message', ({ code, message }) => {
+      if (socket.current === client && session.current?.code === code) {
+        setChat((messages) => [...messages, message].slice(-chatHistoryLimit))
+      }
+    })
     client.on('room-closed', () => {
       if (socket.current === client) returnHome('L’hôte a quitté la partie. Le salon est fermé.')
     })
@@ -128,6 +136,7 @@ function useGame() {
         const response = await request(client, 'enter', { ...pending, mode: 'resume' })
         if (stillCurrent() && !ignoreState.current) {
           setError('')
+          setChat(response.chat ?? [])
           receive(response.state)
         }
       } catch (problem) {
@@ -163,6 +172,7 @@ function useGame() {
   async function enter(mode, profile, { code, theme, personalityTest, arcade, groupHome, speedBonus = defaultSettings.speedBonus } = {}) {
     setError('')
     setNotice('')
+    setChat([])
     setBusy(true)
     try {
       if (mode === 'local') {
@@ -186,6 +196,7 @@ function useGame() {
         if (socket.current !== client) return false
         session.current = { code: response.state.code, token: response.token }
         store('qc-session', session.current)
+        setChat(response.chat ?? [])
         receive(response.state)
       }
       store('qc-profile', { ...profile, name: profile.name.trim().replace(/\s+/g, ' ') }, 'localStorage')
@@ -228,6 +239,7 @@ function useGame() {
     socket.current = null
     client?.disconnect()
     setState(null)
+    setChat([])
     setError('')
     setReconnecting(false)
     setNotice(message)
@@ -264,12 +276,16 @@ function useGame() {
   const aimArcade = useCallback((angle) => {
     if (socket.current?.connected) socket.current.volatile.emit('arcade-aim', angle)
   }, [])
+  async function sendChat(text) {
+    if (!socket.current?.connected || reconnecting) throw new Error('Reconnexion au salon en cours.')
+    await request(socket.current, 'chat-send', text)
+  }
   async function loadAvatarPreview(id) {
     if (local.current) return local.current.room.players.get(id)?.photoPreview ?? null
     if (!socket.current?.connected || reconnecting) throw new Error('Reconnexion au salon en cours.')
     return (await request(socket.current, 'avatar-preview', id)).photo ?? null
   }
-  return { state, busy, error, reconnecting, notice, leaving, clockOffset, enter, action, leave, arcadeFrame, aimArcade, loadAvatarPreview, clearError: () => setError('') }
+  return { state, chat, sendChat, busy, error, reconnecting, notice, leaving, clockOffset, enter, action, leave, arcadeFrame, aimArcade, loadAvatarPreview, clearError: () => setError('') }
 }
 
 function CategoryIcon({ category, size = 22 }) {
@@ -385,6 +401,7 @@ function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, 
           <ErrorText>{game.error}</ErrorText>
           <button className="button outlined w-full justify-center" disabled={game.busy || photoBusy}>Rejoindre <ArrowRight size={17} /></button>
         </form>}
+        {group?.phase === 'lobby' && <LobbyChat key={group.code} selfId={group.selfId} players={group.players} messages={game.chat} send={game.sendChat} reconnecting={game.reconnecting} />}
       </div>
     </section>
     {canChoose && <section className="themes" aria-labelledby="themes-title">
@@ -535,19 +552,23 @@ function RoomPlayers({ state, action, reconnecting, loadAvatarPreview }) {
   </>
 }
 
-function Lobby({ state, action, error, reconnecting, loadAvatarPreview }) {
+function Lobby({ state, game }) {
+  const { action, error } = game
   const host = state.selfId === state.hostId
   const canStart = state.players.length >= 2 || (state.local && Boolean(state.personality))
   return <main className="page-width game-page">
     <div className="game-heading"><h1 className="display">{state.local ? 'Partie solo' : 'Salon d’attente'}</h1></div>
     <div className="lobby-grid">
+      <div className="lobby-social">
       <section className="panel lobby-players">
         {state.local ? <div className="lobby-code local-code"><Gamepad2 size={32}/><div><strong className="display">{state.personality ? 'Questionnaire en solo' : 'Solo contre les bots'}</strong>{!state.personality && <p>Pixel, Mochi et Glitch jouent avec toi.</p>}</div></div> :
           <RoomInvite code={state.code} />}
-        <RoomPlayers state={state} action={action} reconnecting={reconnecting} loadAvatarPreview={loadAvatarPreview} />
+        <RoomPlayers state={state} action={action} reconnecting={game.reconnecting} loadAvatarPreview={game.loadAvatarPreview} />
         <ErrorText>{error}</ErrorText>
         {host ? <><button className="button primary w-full justify-center mt-5" disabled={!canStart} onClick={() => action({ type: 'start' })}><Play size={19} fill="currentColor" /> {state.personality ? 'Lancer le questionnaire' : 'Lancer la partie'}</button>{!canStart && <p className="field-note text-center">Il faut au moins 2 joueurs pour démarrer.</p>}</> : <p className="wait-note"><span /> L’hôte lance la partie.</p>}
       </section>
+      {!state.local && <LobbyChat key={state.code} selfId={state.selfId} players={state.players} messages={game.chat} send={game.sendChat} reconnecting={game.reconnecting} />}
+      </div>
       {state.arcade ? <ArcadeIntro /> : state.personality ? <PersonalityIntro testId={state.personality.testId} /> : <Settings state={state} action={action} host={host} />}
     </div>
   </main>
@@ -945,7 +966,7 @@ function App() {
     {game.reconnecting && <div className="connection-banner" role="status">Connexion interrompue. Reconnexion au salon…</div>}
     {game.notice && <div className="connection-banner" role="status">{game.notice}</div>}
     {showingHome ? <Home game={game} group={online ? state : null} resumeGame={() => { setGroupPreview(false); window.scrollTo(0, 0) }} {...{ profile, setProfile, photoBusy, setPhotoBusy, code, setCode, openSolo, openCreate }} openPersonality={() => { game.clearError(); setModal('personality') }} /> : <>
-    {state?.phase === 'lobby' && <Lobby state={state} action={game.action} error={game.error} reconnecting={game.reconnecting} loadAvatarPreview={game.loadAvatarPreview} />}
+    {state?.phase === 'lobby' && <Lobby state={state} game={game} />}
     {state?.phase === 'question' && <Question state={state} action={game.action} clockOffset={game.clockOffset} error={game.error} reconnecting={game.reconnecting} speech={speech} />}
     {state?.phase === 'reveal' && <Reveal state={state} action={game.action} clockOffset={game.clockOffset} reconnecting={game.reconnecting} error={game.error} />}
     {state?.phase === 'final' && <Final state={state} action={game.action} leave={goHome} error={game.error} />}
@@ -954,6 +975,7 @@ function App() {
     {state?.phase === 'arcade' && <ArcadeRound state={state} frameRef={game.arcadeFrame} aim={game.aimArcade} paused={Boolean(modal)} reconnecting={game.reconnecting} error={game.error} />}
     {state?.phase === 'arcade-final' && <ArcadeResults state={state} action={game.action} leave={goHome} error={game.error} />}
     </>}
+    {online && state.phase !== 'lobby' && <RoomChatDock key={state.code} selfId={state.selfId} players={state.players} messages={game.chat} send={game.sendChat} reconnecting={game.reconnecting} />}
     <footer className="site-footer page-width"><Logo />
       {canChooseArcade && <button className="arcade-trigger" type="button" aria-label="Ouvrir l’arcade secrète" title="Arcade secrète" disabled={game.busy || game.reconnecting} onClick={() => { game.clearError(); setModal('arcade') }}><Gamepad2 size={18} /></button>}
       <p>Créé par <a href="https://www.malbroye.fr" target="_blank" rel="noopener noreferrer">Malbroye Studio</a></p>
