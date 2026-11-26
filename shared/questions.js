@@ -17,7 +17,12 @@ export const categories = [
 ]
 
 export const illustratedCategory = { id: 'illustrated', name: 'Illustré', icon: 'image' }
-export const themeOptions = [...categories, illustratedCategory]
+const screenThemes = [
+  { id: 'films', name: 'Cinéma', icon: 'film' },
+  { id: 'series', name: 'Séries', icon: 'tv' },
+]
+export const homeThemes = [...categories, ...screenThemes]
+export const themeOptions = [...homeThemes, illustratedCategory]
 
 // The first choice in each entry is correct. The game shuffles choices before play.
 const bank = {
@@ -133,6 +138,15 @@ const extraQuestions = questionsFromPacks(
 
 export const imageCatalog = { ...mediaLibrary, ...expansionImages, ...customMediaLibrary }
 
+const seriesQuestionIds = new Set([
+  'cinema-1', 'cinema-4', 'cinema-6', 'cinema-7',
+  'cinema-web-4', 'cinema-web-7', 'cinema-web-8',
+  'cinema-pack-8', 'cinema-pack-9', 'cinema-pack-10',
+  ...Array.from({ length: 20 }, (_, index) => `cinema-extension-${41 + index}`),
+  ...[11, 12, 13, 14, 19].map((index) => `cinema-supplement-${index}`),
+  ...Array.from({ length: 20 }, (_, index) => `cinema-supplement-${61 + index}`),
+])
+
 function resolveMedia(value) {
   if (value?.type === 'video' && value.preview) return { ...value, preview: resolveMedia(value.preview) }
   const ref = typeof value === 'string' ? value : value?.ref
@@ -146,8 +160,10 @@ function resolveMedia(value) {
 
 export const questions = [...builtInQuestions, ...packQuestions, ...mediaQuestions, ...customQuestions, ...extraQuestions, ...trueFalseQuestions].map((question) => {
   const media = customMedia[question.id] ?? question.media
+  const isSeries = question.screen === 'series' || seriesQuestionIds.has(question.id) || question.id.startsWith('cinema-stranger-things-pack-')
   return {
     ...question,
+    screen: question.category === 'cinema' ? (isSeries ? 'series' : 'films') : undefined,
     media: resolveMedia(media),
     followUp: question.followUp ?? questionVideos[question.id],
   }

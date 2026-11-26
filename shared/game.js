@@ -89,7 +89,7 @@ export function questionPool(themes) {
   if (themes.includes(illustratedCategory.id)) {
     return questions.filter(({ media }) => media?.stage === 'question' && (media.type === 'image' || media.type === 'video'))
   }
-  return themes.length ? questions.filter((question) => themes.includes(question.category)) : questions
+  return themes.length ? questions.filter((question) => themes.includes(question.category) || themes.includes(question.screen)) : questions
 }
 
 export const questionCounts = Object.fromEntries(themeOptions.map(({ id }) => [id, questionPool([id]).length]))
@@ -98,7 +98,7 @@ function settingsFrom(input) {
   const requestedThemes = Array.isArray(input?.themes) ? input.themes : []
   const themes = requestedThemes.includes(illustratedCategory.id)
     ? [illustratedCategory.id]
-    : categories.filter(({ id }) => requestedThemes.includes(id)).map(({ id }) => id)
+    : themeOptions.filter(({ id }) => requestedThemes.includes(id)).map(({ id }) => id)
   const max = questionPool(themes).length
   const requested = counts.includes(input?.total) ? input.total : defaultSettings.total
   return {
@@ -478,6 +478,7 @@ export function view(room, id, now = Date.now()) {
       id: round.question.id,
       prompt: round.question.prompt,
       category: round.question.category,
+      screen: round.question.screen,
       choices: round.question.choices,
       explanation: revealed ? round.question.explanation : undefined,
       media: round.question.media?.stage === 'question' || revealed ? round.question.media : undefined,

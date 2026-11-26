@@ -3,11 +3,11 @@ import { createRoot } from 'react-dom/client'
 import {
   ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, BarChart3, Brain, Check,
   ChevronRight, CircleHelp, Clock3, Copy, Crown, Film, Flame, Gamepad2, Globe2, PawPrint,
-  HeartHandshake, Image, Maximize2, Play, Plus, Shuffle, Smile, Sparkles, Square, Swords, TimerReset, Trophy, Twitch, Users, Volume2, X, Youtube, Zap,
+  HeartHandshake, Image, Maximize2, Play, Plus, Shuffle, Smile, Sparkles, Square, Swords, TimerReset, Trophy, Tv, Twitch, Users, Volume2, X, Youtube, Zap,
 } from 'lucide-react'
 import '@fontsource-variable/geist'
-import { act, avatars, counts, createRoom, defaultSettings, durations, jokerFitsQuestion, jokers, maxSpeedBonus, mergeQuestionHistory, normalizeRoomCode, questionCounts, revealDuration, roomCodeLength, tick, view } from '../shared/game.js'
-import { categories, illustratedCategory, themeOptions } from '../shared/questions.js'
+import { act, avatars, counts, createRoom, defaultSettings, durations, jokerFitsQuestion, jokers, maxSpeedBonus, mergeQuestionHistory, normalizeRoomCode, questionCounts, questionPool, revealDuration, roomCodeLength, tick, view } from '../shared/game.js'
+import { categories, homeThemes, illustratedCategory, themeOptions } from '../shared/questions.js'
 import { getPersonalityQuestion } from '../shared/personality.js'
 import { arcadeLimit } from '../shared/arcade.js'
 import { ArcadeAvatar, ArcadeIntro, ArcadeResults, ArcadeRound } from './arcade.jsx'
@@ -17,7 +17,7 @@ import { SpeechSettings, useQuestionSpeech } from './speech.jsx'
 import { heroLines, illustratedCovers, pickHomeItem } from './home-content.js'
 import './styles.css'
 
-const categoryIcons = { brain: Brain, paw: PawPrint, trophy: Trophy, twitch: Twitch, youtube: Youtube, smile: Smile, gamepad: Gamepad2, film: Film, image: Image }
+const categoryIcons = { brain: Brain, paw: PawPrint, trophy: Trophy, twitch: Twitch, youtube: Youtube, smile: Smile, gamepad: Gamepad2, film: Film, tv: Tv, image: Image }
 const jokerIcons = { half: Sparkles, poll: BarChart3, double: Swords, time: TimerReset }
 const letters = ['A', 'B', 'C', 'D']
 const score = new Intl.NumberFormat('fr-FR')
@@ -385,7 +385,7 @@ function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, 
     {canChoose && <section className="themes" aria-labelledby="themes-title">
       <div className="themes-heading"><h2 className="display" id="themes-title">Jouer par thème</h2><button className="sticker-toggle" type="button" onClick={() => setStickersPaused(!stickersPaused)}>{stickersPaused ? 'Afficher les stickers' : 'Masquer les stickers'}</button></div>
       <div className="theme-grid">
-        {categories.map((category) => <button type="button" className="theme-card" key={category.id} onClick={() => openSolo(category.id)} disabled={game.busy || game.reconnecting}><span className="theme-icon"><CategoryIcon category={category} size={19} /></span><span>{category.name}</span><ArrowRight className="theme-arrow" size={16} /></button>)}
+        {homeThemes.map((category) => <button type="button" className="theme-card" key={category.id} onClick={() => openSolo(category.id)} disabled={game.busy || game.reconnecting}><span className="theme-icon"><CategoryIcon category={category} size={19} /></span><span>{category.name}</span><ArrowRight className="theme-arrow" size={16} /></button>)}
       </div>
     </section>}
   </main>
@@ -403,9 +403,7 @@ function Settings({ state, action, host }) {
   const { settings } = state
   const themeCounts = state.questionCounts ?? questionCounts
   const total = categories.reduce((sum, { id }) => sum + themeCounts[id], 0)
-  const limit = settings.themes.length
-    ? settings.themes.reduce((sum, id) => sum + themeCounts[id], 0)
-    : total
+  const limit = settings.themes.length ? questionPool(settings.themes).length : total
   const update = (change) => action({ type: 'settings', settings: change })
   const toggleTheme = (id) => action({ type: 'settings', theme: id })
   return <section className="panel settings">
@@ -605,7 +603,7 @@ function Question({ state, action, clockOffset, error, reconnecting, speech }) {
   const { question, personal, settings } = state
   const isBinary = question.choices.length === 2
   const heading = useRef(null)
-  const category = categories.find(({ id }) => id === question.category)
+  const category = homeThemes.find(({ id }) => id === (question.screen ?? question.category))
   const { seconds, ratio } = useClock(personal, clockOffset)
   const locked = personal.locked || !seconds
   const activeJokers = jokers.filter(({ id }) => settings.jokers[id])
