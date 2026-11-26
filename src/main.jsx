@@ -608,43 +608,60 @@ function Question({ state, action, clockOffset, error, reconnecting, speech }) {
   const category = categories.find(({ id }) => id === question.category)
   const { seconds, ratio } = useClock(personal, clockOffset)
   const locked = personal.locked || !seconds
+  const activeJokers = jokers.filter(({ id }) => settings.jokers[id])
   const play = (input) => action({ ...input, round: state.index })
   useEffect(() => { heading.current.focus({ preventScroll: true }) }, [state.index])
   return <main className="page-width game-page question-page">
-    <div className="question-top"><span className="eyebrow">Question {state.index + 1} sur {settings.total}</span><span className="category-tag"><CategoryIcon category={category} size={17} /> {category.name}{isBinary && ' · Vrai/Faux'}</span></div>
-    <div className="progress-strip" aria-hidden="true">{Array.from({ length: settings.total }, (_, index) => <i className={index <= state.index ? 'done' : ''} key={index} />)}</div>
-    <section className="question-panel">
-      <div className="question-heading">
-        <h1 ref={heading} tabIndex={-1}>{question.prompt}</h1>
-        {speech.supported && <button className="button secondary small read-question" type="button" onClick={speech.playing === 'question' ? () => speech.stop('question') : speech.read}>
-          {speech.playing === 'question' ? <><Square size={14} /> Arrêter la lecture</> : <><Volume2 size={16} /> Lire la question</>}
-        </button>}
+    <header className="quiz-round-heading">
+      <p className="eyebrow">{state.local ? 'Partie solo' : 'Partie ' + state.code}</p>
+      <p className="display">{settings.speedBonus === false ? 'À toi de jouer' : 'Réponds vite pour plus de points'}</p>
+    </header>
+    <div className="quiz-round-grid" data-jokers={activeJokers.length > 0}>
+      {activeJokers.length > 0 && <aside className="quiz-jokers" aria-label="Tes jokers">
+        <h2 className="eyebrow">Jokers</h2>
+        <div className="quiz-joker-list">{activeJokers.map(({ id, name, description }) => {
+          const Icon = jokerIcons[id]
+          const available = jokerFitsQuestion(id, question.choices.length)
+          return <button className="quiz-joker" type="button" key={id} disabled={!available || locked || reconnecting || !state.stock[id] || personal.used[id]} title={available ? description : 'Indisponible sur les Vrai/Faux'} onClick={() => play({ type: 'joker', joker: id })}>
+            <span className="quiz-joker-icon"><Icon size={17} aria-hidden="true" /></span><span>{name}</span><small>{state.stock[id]}</small>
+          </button>
+        })}</div>
+        {isBinary && (settings.jokers.half > 0 || settings.jokers.double > 0) && <p className="field-note">50/50 et Double chance sont réservés aux QCM.</p>}
+      </aside>}
+      <section className="panel quiz-question-card" aria-labelledby="round-question">
+        <div className="progress-strip quiz-card-progress" aria-hidden="true">{Array.from({ length: settings.total }, (_, index) => <i className={index <= state.index ? 'done' : ''} key={index} />)}</div>
+        <div className="quiz-card-meta">
+          <div className="quiz-card-tags">
+            <span className="quiz-round-number">Question {state.index + 1} / {settings.total}</span>
+            <span className="category-tag"><CategoryIcon category={category} size={15} /> {category.name}{isBinary && ' · Vrai/Faux'}</span>
+          </div>
+          <div className="clock" role="timer" aria-label={seconds + ' secondes restantes'}>
+            <svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="34" className="clock-track"/><circle cx="40" cy="40" r="34" className={seconds <= 5 ? 'clock-fill urgent' : 'clock-fill'} pathLength="100" strokeDasharray={ratio * 100 + ' 100'} /></svg>
+            <span aria-hidden="true">{seconds}<small>sec</small></span>
+          </div>
+        </div>
+        <div className="quiz-card-heading">
+          <h1 id="round-question" ref={heading} tabIndex={-1}>{question.prompt}</h1>
+          {speech.supported && <button className="button secondary small quiz-read" type="button" aria-label={speech.playing === 'question' ? 'Arrêter la lecture' : 'Lire la question'} title={speech.playing === 'question' ? 'Arrêter la lecture' : 'Lire la question'} onClick={speech.playing === 'question' ? () => speech.stop('question') : speech.read}>
+            {speech.playing === 'question' ? <Square size={15} /> : <Volume2 size={17} />}
+          </button>}
+        </div>
         {speech.error && <p className="field-note" role="status">{speech.error}</p>}
-      </div>
-      <div className="clock" role="timer" aria-label={seconds + ' secondes restantes'}><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="34" className="clock-track"/><circle cx="40" cy="40" r="34" className={seconds <= 5 ? 'clock-fill urgent' : 'clock-fill'} pathLength="100" strokeDasharray={ratio * 100 + ' 100'} /></svg><span aria-hidden="true">{seconds}</span></div>
-    </section>
-    <div className="round-layout" data-visual={Boolean(question.media && question.media.type !== 'audio')}>
-      {question.media && <div className="round-media"><QuestionMedia key={question.id} media={question.media} /></div>}
-      <div className="round-controls">
+        {question.media && <div className="quiz-clue"><QuestionMedia key={question.id} media={question.media} /></div>}
+        {personal.poll && <div className="poll-panel"><h2 className="field-label">{personal.poll.simulated ? 'Sondage simulé' : 'Votes des autres joueurs'}</h2><VoteBars percentages={personal.poll.percentages} choices={isBinary ? question.choices : undefined} /></div>}
         <div className={isBinary ? 'answer-grid binary-answers' : 'answer-grid'}>
           {question.choices.map((choice, index) => <button className="answer" key={index} disabled={locked || reconnecting || personal.eliminated.includes(index) || personal.choices.includes(index)} data-selected={personal.choices.includes(index)} data-eliminated={personal.eliminated.includes(index)} onClick={() => play({ type: 'answer', choice: index })}>
             <span aria-hidden={isBinary || undefined}>{isBinary ? (index === 0 ? <Check size={19} /> : <X size={19} />) : letters[index]}</span><strong>{choice}</strong>{personal.choices.includes(index) && <Check size={20} aria-hidden="true" />}
           </button>)}
         </div>
         <div className="question-status" role="status">{locked ? (personal.choices.length ? 'Réponse enregistrée.' : 'Temps écoulé.') : personal.used.double ? (personal.choices.length ? 'Tu peux tenter une deuxième réponse.' : 'Double chance activée.') : 'Choisis une réponse.'} <span>{state.answered} / {state.players.length} ont répondu</span></div>
-      </div>
+        <ErrorText>{error}</ErrorText>
+      </section>
+      <aside className="panel quiz-rank" aria-labelledby="quiz-rank-title">
+        <h2 id="quiz-rank-title"><Trophy size={18} aria-hidden="true" /> Classement</h2>
+        {state.ranking.length ? <Leaderboard ranking={state.ranking} self={state.selfId} /> : <p>Aucun score pour l’instant.</p>}
+      </aside>
     </div>
-    {jokers.some(({ id }) => settings.jokers[id]) && <section className="panel joker-tray">
-      <h2 className="display">Tes jokers</h2>
-      <div className="joker-buttons">{jokers.filter(({ id }) => settings.jokers[id]).map(({ id, name, description }) => {
-        const Icon = jokerIcons[id]
-        const available = jokerFitsQuestion(id, question.choices.length)
-        return <button className="button secondary" key={id} disabled={!available || locked || reconnecting || !state.stock[id] || personal.used[id]} title={available ? description : 'Indisponible sur les Vrai/Faux'} onClick={() => play({ type: 'joker', joker: id })}><Icon size={18} /> {name} <small>×{state.stock[id]}</small></button>
-      })}</div>
-      {isBinary && (settings.jokers.half > 0 || settings.jokers.double > 0) && <p className="field-note">Le 50/50 et la Double chance sont réservés aux QCM.</p>}
-      {personal.poll && <div className="poll-panel"><h3 className="field-label">{personal.poll.simulated ? 'Sondage simulé' : 'Votes des autres joueurs'}</h3><VoteBars percentages={personal.poll.percentages} choices={isBinary ? question.choices : undefined} /></div>}
-    </section>}
-    <ErrorText>{error}</ErrorText>
   </main>
 }
 
