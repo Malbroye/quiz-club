@@ -769,7 +769,7 @@ function App() {
   const [personalityTest, setPersonalityTest] = useState('bizarre')
   const [personalityMode, setPersonalityMode] = useState('create')
   const activeQuestion = state?.phase === 'question' ? state.question : null
-  const activeTest = state?.phase === 'personality' ? state.personality : null
+  const activeTest = state?.phase === 'personality' && !state.personality.currentVotes ? state.personality : null
   const testPrompt = activeTest && getPersonalityQuestion(activeTest.testId, activeTest.step, activeTest)?.[0]
   const speech = useQuestionSpeech(
     activeQuestion?.prompt ?? testPrompt,

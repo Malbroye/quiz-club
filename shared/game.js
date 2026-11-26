@@ -1,5 +1,5 @@
 import { categories, illustratedCategory, questions, themeOptions } from './questions.js'
-import { actPersonality, getPersonalityTest, personalityView } from './personality.js'
+import { actPersonality, getPersonalityTest, personalityView, tickPersonality } from './personality.js'
 import { actArcade, arcadeFrame, arcadeLimit } from './arcade.js'
 
 export const avatars = ['👾', '🦊', '🐸', '🤖', '🐙', '🦄', '👻', '🐼', '🐱', '👽', '🦖', '🐝']
@@ -318,6 +318,7 @@ function finishRound(room, now) {
 }
 
 export function tick(room, now = Date.now()) {
+  if (room.phase === 'personality') return tickPersonality(room)
   if (room.phase !== 'question') return false
   const { entries, question } = room.round
   let changed = false
