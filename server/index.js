@@ -151,6 +151,12 @@ io?.on('connection', (socket) => {
     return { state: view(record.room, player.id, now), token }
   })
 
+  handle('avatar-preview', (playerId) => {
+    const session = socket.data.session
+    if (!session || session.record.sockets.get(session.id) !== socket) throw new Error('Rejoins un salon pour voir la photo.')
+    return { photo: session.record.room.players.get(playerId)?.photoPreview ?? null }
+  })
+
   handle('action', (input, now) => {
     const session = socket.data.session
     if (!session) throw new Error('Rejoins un salon pour jouer.')

@@ -264,7 +264,12 @@ function useGame() {
   const aimArcade = useCallback((angle) => {
     if (socket.current?.connected) socket.current.volatile.emit('arcade-aim', angle)
   }, [])
-  return { state, busy, error, reconnecting, notice, leaving, clockOffset, enter, action, leave, arcadeFrame, aimArcade, clearError: () => setError('') }
+  async function loadAvatarPreview(id) {
+    if (local.current) return local.current.room.players.get(id)?.photoPreview ?? null
+    if (!socket.current?.connected || reconnecting) throw new Error('Reconnexion au salon en cours.')
+    return (await request(socket.current, 'avatar-preview', id)).photo ?? null
+  }
+  return { state, busy, error, reconnecting, notice, leaving, clockOffset, enter, action, leave, arcadeFrame, aimArcade, loadAvatarPreview, clearError: () => setError('') }
 }
 
 function CategoryIcon({ category, size = 22 }) {
@@ -367,7 +372,7 @@ function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, 
         {group ? <section className="join-panel" aria-label="Ton groupe">
           <div className="join-heading"><h2 className="display">Ton groupe</h2><Users size={22} /></div>
           <RoomInvite code={group.code} />
-          <RoomPlayers state={group} action={game.action} reconnecting={game.reconnecting} />
+          <RoomPlayers state={group} action={game.action} reconnecting={game.reconnecting} loadAvatarPreview={game.loadAvatarPreview} />
           {group.selfId !== group.hostId && group.groupHome && <p className="wait-note"><span /> L’hôte choisit le prochain jeu.</p>}
           <ErrorText>{game.error}</ErrorText>
         </section> : <form className="join-panel" onSubmit={(event) => { event.preventDefault(); game.enter('join', profile, { code }) }}>
@@ -454,12 +459,27 @@ function RoomInvite({ code }) {
   return <div className="lobby-code"><div className="field-label">Code du groupe</div><strong className="display">{code}</strong><div className="flex flex-wrap gap-2"><button className="button small secondary" onClick={() => copy('code')}>{copied === 'code' ? <Check size={15} /> : <Copy size={15} />}{copied === 'code' ? 'Code copié' : 'Copier le code'}</button><button className="button small secondary" onClick={() => copy('link')}>{copied === 'link' ? <Check size={15} /> : <Copy size={15} />}{copied === 'link' ? 'Lien copié' : 'Copier le lien'}</button></div>{copied === 'failed' && <p className="field-note" role="status">Sélectionne le code pour le copier.</p>}</div>
 }
 
-function LobbyAvatar({ player, arcade }) {
+function LobbyAvatar({ player, arcade, loadAvatarPreview }) {
   const [expanded, setExpanded] = useState(false)
+  const [detail, setDetail] = useState(undefined)
   const trigger = useRef(null)
+  const loading = useRef(false)
   const photo = arcade ? headSource(player) : player.photo
   if (!photo) return <PlayerAvatar player={player} />
   const label = `Photo de profil de ${player.name}`
+  const preparing = player.hasPhotoPreview && detail === undefined
+
+  async function loadDetail() {
+    if (!player.hasPhotoPreview || detail || loading.current) return
+    loading.current = true
+    try {
+      setDetail(await loadAvatarPreview(player.id))
+    } catch {
+      setDetail(null)
+    } finally {
+      loading.current = false
+    }
+  }
 
   function closePhoto() {
     setExpanded(false)
@@ -467,18 +487,20 @@ function LobbyAvatar({ player, arcade }) {
   }
 
   return <div className="room-photo-wrap">
-    <button className="room-photo-trigger" ref={trigger} type="button" aria-label={`Agrandir la photo de ${player.name}`} aria-haspopup="dialog" onClick={() => setExpanded(true)}>
-      <PlayerAvatar player={{ ...player, photo }} />
+    <button className="room-photo-trigger" ref={trigger} type="button" aria-label={`Agrandir la photo de ${player.name}`} aria-haspopup="dialog" onPointerEnter={(event) => { if (event.pointerType === 'mouse') loadDetail() }} onClick={() => { loadDetail(); setExpanded(true) }}>
+      <PlayerAvatar player={{ ...player, photo: detail ?? photo }} />
       <span className="room-photo-zoom"><Maximize2 size={12} aria-hidden="true" /></span>
     </button>
-    {!expanded && <div className="room-photo-preview" aria-hidden="true"><img src={photo} alt="" /></div>}
+    {!expanded && <div className="room-photo-preview" aria-hidden="true">{preparing
+      ? <div className="room-photo-loading">Chargement…</div>
+      : <img src={detail ?? photo} alt="" />}</div>}
     {expanded && <Modal title={label} className="image-modal room-photo-modal" close={closePhoto}>
-      <img src={photo} alt={label} />
+      {preparing ? <div className="room-photo-loading" role="status">Chargement de la photo…</div> : <img src={detail ?? photo} alt={label} />}
     </Modal>}
   </div>
 }
 
-function RoomPlayers({ state, action, reconnecting }) {
+function RoomPlayers({ state, action, reconnecting, loadAvatarPreview }) {
   const [editing, setEditing] = useState(null)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
@@ -498,7 +520,7 @@ function RoomPlayers({ state, action, reconnecting }) {
   return <>
     <div className="player-heading"><h2 className="display">Joueurs</h2><span><Users size={16} /> {state.players.length}{!state.local && ` / ${state.arcade ? arcadeLimit : 24}`}</span></div>
     <ul className="player-list room-player-list">{state.players.map((player) => <li key={player.id}>
-      <LobbyAvatar player={player} arcade={state.arcade} />
+      <LobbyAvatar player={player} arcade={state.arcade} loadAvatarPreview={loadAvatarPreview} />
       {canRename && editing === player.id ? <form className="room-rename" onSubmit={(event) => rename(event, player.id)}>
         <input aria-label={`Nouveau pseudo de ${player.name}`} value={draft} onChange={(event) => setDraft(event.target.value)} autoFocus maxLength={20} required />
         <button type="submit" className="room-rename-button" aria-label="Enregistrer le pseudo" title="Enregistrer" disabled={saving || reconnecting || !draft.trim()}><Check size={16} aria-hidden="true" /></button>
@@ -513,7 +535,7 @@ function RoomPlayers({ state, action, reconnecting }) {
   </>
 }
 
-function Lobby({ state, action, error, reconnecting }) {
+function Lobby({ state, action, error, reconnecting, loadAvatarPreview }) {
   const host = state.selfId === state.hostId
   const canStart = state.players.length >= 2 || (state.local && Boolean(state.personality))
   return <main className="page-width game-page">
@@ -522,7 +544,7 @@ function Lobby({ state, action, error, reconnecting }) {
       <section className="panel lobby-players">
         {state.local ? <div className="lobby-code local-code"><Gamepad2 size={32}/><div><strong className="display">{state.personality ? 'Questionnaire en solo' : 'Solo contre les bots'}</strong>{!state.personality && <p>Pixel, Mochi et Glitch jouent avec toi.</p>}</div></div> :
           <RoomInvite code={state.code} />}
-        <RoomPlayers state={state} action={action} reconnecting={reconnecting} />
+        <RoomPlayers state={state} action={action} reconnecting={reconnecting} loadAvatarPreview={loadAvatarPreview} />
         <ErrorText>{error}</ErrorText>
         {host ? <><button className="button primary w-full justify-center mt-5" disabled={!canStart} onClick={() => action({ type: 'start' })}><Play size={19} fill="currentColor" /> {state.personality ? 'Lancer le questionnaire' : 'Lancer la partie'}</button>{!canStart && <p className="field-note text-center">Il faut au moins 2 joueurs pour démarrer.</p>}</> : <p className="wait-note"><span /> L’hôte lance la partie.</p>}
       </section>
@@ -923,7 +945,7 @@ function App() {
     {game.reconnecting && <div className="connection-banner" role="status">Connexion interrompue. Reconnexion au salon…</div>}
     {game.notice && <div className="connection-banner" role="status">{game.notice}</div>}
     {showingHome ? <Home game={game} group={online ? state : null} resumeGame={() => { setGroupPreview(false); window.scrollTo(0, 0) }} {...{ profile, setProfile, photoBusy, setPhotoBusy, code, setCode, openSolo, openCreate }} openPersonality={() => { game.clearError(); setModal('personality') }} /> : <>
-    {state?.phase === 'lobby' && <Lobby state={state} action={game.action} error={game.error} reconnecting={game.reconnecting} />}
+    {state?.phase === 'lobby' && <Lobby state={state} action={game.action} error={game.error} reconnecting={game.reconnecting} loadAvatarPreview={game.loadAvatarPreview} />}
     {state?.phase === 'question' && <Question state={state} action={game.action} clockOffset={game.clockOffset} error={game.error} reconnecting={game.reconnecting} speech={speech} />}
     {state?.phase === 'reveal' && <Reveal state={state} action={game.action} clockOffset={game.clockOffset} reconnecting={game.reconnecting} error={game.error} />}
     {state?.phase === 'final' && <Final state={state} action={game.action} leave={goHome} error={game.error} />}

@@ -18,9 +18,10 @@ export function isCustomNameColor(value) {
 }
 
 export const maxAvatarPhotoLength = 4096
+export const maxAvatarPreviewLength = 48 * 1024
 
-export function isAvatarPhoto(photo) {
-  if (typeof photo !== 'string' || photo.length > maxAvatarPhotoLength) return false
+export function isAvatarPhoto(photo, limit = maxAvatarPhotoLength) {
+  if (typeof photo !== 'string' || photo.length > limit) return false
   const encoded = /^data:image\/jpeg;base64,(\/9j\/[A-Za-z0-9+/]+={0,2})$/.exec(photo)?.[1]
   return Boolean(encoded && encoded.length % 4 === 0 && atob(encoded).endsWith('\xff\xd9'))
 }
@@ -140,6 +141,7 @@ export function addPlayer(room, profile, id = Array.from(crypto.getRandomValues(
       : nameColors.find(({ id }) => id === profile.nameColor)?.id,
     nameBackground: isCustomNameColor(profile.nameBackground) ? profile.nameBackground.toLowerCase() : undefined,
   }
+  if (player.photo && isAvatarPhoto(profile.photoPreview, maxAvatarPreviewLength)) player.photoPreview = profile.photoPreview
   resetPlayer(player, room.settings)
   room.players.set(id, player)
   room.hostId ??= id
@@ -479,8 +481,8 @@ export function view(room, id, now = Date.now()) {
   const self = room.players.get(id)
   const revealed = phase === 'reveal' || phase === 'final'
   const votes = revealed ? tally(room) : null
-  const publicPlayer = ({ id, name, avatar, photo, nameColor, nameBackground, connected, bot }) => ({
-    id, name, avatar, photo, nameColor, nameBackground, connected, bot,
+  const publicPlayer = ({ id, name, avatar, photo, photoPreview, nameColor, nameBackground, connected, bot }) => ({
+    id, name, avatar, photo, hasPhotoPreview: Boolean(photoPreview), nameColor, nameBackground, connected, bot,
   })
   return {
     code: room.code, phase, local: room.local, hostId: room.hostId, selfId: id, groupHome: room.groupHome,

@@ -1,6 +1,6 @@
 import React, { useId, useState } from 'react'
 import { ChevronDown, Upload } from 'lucide-react'
-import { avatars, isAvatarPhoto, isCustomNameColor, maxAvatarPhotoLength, nameColors } from '../shared/game.js'
+import { avatars, isAvatarPhoto, isCustomNameColor, maxAvatarPhotoLength, maxAvatarPreviewLength, nameColors } from '../shared/game.js'
 
 const photoFormats = ['image/jpeg', 'image/png', 'image/webp']
 
@@ -18,15 +18,21 @@ async function preparePhoto(file) {
     const crop = Math.min(image.naturalWidth, image.naturalHeight)
     const left = (image.naturalWidth - crop) / 2
     const top = (image.naturalHeight - crop) / 2
-    for (const [size, quality] of [[96, .82], [80, .68], [64, .62], [48, .55]]) {
-      canvas.width = canvas.height = size
-      context.fillStyle = '#202020'
-      context.fillRect(0, 0, size, size)
-      context.drawImage(image, left, top, crop, crop, 0, 0, size, size)
-      const photo = canvas.toDataURL('image/jpeg', quality)
-      if (photo.length <= maxAvatarPhotoLength && isAvatarPhoto(photo)) return photo
+    function encode(sizes, limit) {
+      for (const [size, quality] of sizes) {
+        const side = Math.min(size, crop)
+        canvas.width = canvas.height = side
+        context.fillStyle = '#202020'
+        context.fillRect(0, 0, side, side)
+        context.drawImage(image, left, top, crop, crop, 0, 0, side, side)
+        const photo = canvas.toDataURL('image/jpeg', quality)
+        if (isAvatarPhoto(photo, limit)) return photo
+      }
     }
-    throw new Error('Cette image est trop détaillée. Essaie une photo plus simple.')
+    const photo = encode([[128, .65], [96, .78], [80, .68], [64, .62], [48, .55]], maxAvatarPhotoLength)
+    if (!photo) throw new Error('Cette image est trop détaillée. Essaie une photo plus simple.')
+    const photoPreview = crop > 128 ? encode([[384, .84], [384, .68], [320, .67], [256, .6]], maxAvatarPreviewLength) : undefined
+    return { photo, photoPreview }
   } finally {
     URL.revokeObjectURL(url)
   }
@@ -83,7 +89,7 @@ export function ProfileAppearance({ profile, setProfile, photoBusy, setPhotoBusy
     setError('')
     setPhotoBusy(true)
     try {
-      change({ photo: await preparePhoto(file) })
+      change(await preparePhoto(file))
     } catch (problem) {
       setError(problem instanceof DOMException ? 'Impossible de lire cette image.' : problem.message)
     } finally {
@@ -101,14 +107,15 @@ export function ProfileAppearance({ profile, setProfile, photoBusy, setPhotoBusy
       <fieldset disabled={photoBusy}>
         <legend className="field-label">Avatar</legend>
         <div className="avatar-picker">
-          {avatars.map((avatar) => <button type="button" aria-label={avatar} aria-pressed={!profile.photo && profile.avatar === avatar} key={avatar} onClick={() => { setError(''); change({ avatar, photo: undefined }) }}>{avatar}</button>)}
+          {avatars.map((avatar) => <button type="button" aria-label={avatar} aria-pressed={!profile.photo && profile.avatar === avatar} key={avatar} onClick={() => { setError(''); change({ avatar, photo: undefined, photoPreview: undefined }) }}>{avatar}</button>)}
         </div>
         <div className="photo-picker">
           <input className="sr-only" type="file" id={inputId} accept={photoFormats.join(',')} onChange={pickPhoto} />
           <label htmlFor={inputId} className="button secondary small"><Upload size={15} /> {profile.photo ? 'Changer la photo' : 'Importer une photo'}</label>
-          {profile.photo && <button className="button secondary small" type="button" onClick={() => change({ photo: undefined })}>Retirer</button>}
+          {profile.photo && <button className="button secondary small" type="button" onClick={() => change({ photo: undefined, photoPreview: undefined })}>Retirer</button>}
         </div>
         <p className="field-note">La photo est visible par les joueurs du salon.</p>
+        {profile.photo && !profile.photoPreview && <p className="field-note">Pour un aperçu plus net, réimporte ta photo originale.</p>}
         {error && <p className="error-text" role="alert">{error}</p>}
       </fieldset>
       {photoBusy && <p className="field-note" role="status">Préparation de la photo…</p>}
