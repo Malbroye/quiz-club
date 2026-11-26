@@ -130,6 +130,7 @@ input::placeholder { color: var(--muted); opacity: 1; }
 .custom-name-color[data-selected="true"] { border-color: var(--gold-line); }
 .custom-name-color input[type="color"] { width: 35px; min-height: 28px; height: 28px; padding: 2px; cursor: pointer; }
 .player-name-backed { width: fit-content; max-width: 100%; padding-inline: 3px; border-radius: 3px; }
+.name-background-toggle { margin-top: 6px; }
 .themes { padding: 25px 0 36px; border-top: 1px solid var(--line); }
 .themes-heading { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
 .themes-heading h2 { font-size: clamp(25px, 3.8vw, 34px); }
@@ -167,8 +168,23 @@ input::placeholder { color: var(--muted); opacity: 1; }
 .player-list > li, .leaderboard > li { display: flex; align-items: center; gap: 9px; min-height: 49px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); padding: 6px 9px; min-width: 0; }
 .player-list strong, .leaderboard strong { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
 .player-list strong small, .leaderboard strong small { color: var(--muted); font-weight: 500; }
+.room-rename { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; }
+.room-rename input { min-width: 0; min-height: 34px; padding: 5px 7px; }
+.room-rename-button { display: grid; place-items: center; flex: 0 0 34px; height: 34px; border: 1px solid var(--line); border-radius: 5px; color: var(--muted); background: var(--panel-dark); }
+.room-rename-button:hover:enabled { color: var(--gold); border-color: var(--gold-line); }
+.room-rename-button:disabled { opacity: .55; }
 .player-avatar { flex: 0 0 32px; width: 32px; height: 32px; display: inline-grid; place-items: center; overflow: hidden; border-radius: 8px; background: var(--panel-raised); border: 1px solid var(--line-strong); font-size: 19px; }
 .player-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.room-player-list { --room-avatar-size: clamp(52px, 8vw, 64px); }
+.room-player-list .player-avatar { flex-basis: var(--room-avatar-size); width: var(--room-avatar-size); height: var(--room-avatar-size); font-size: 26px; }
+.room-photo-wrap { position: relative; flex: 0 0 var(--room-avatar-size); min-width: 0; }
+.room-photo-trigger { position: relative; display: grid; width: 100%; border-radius: 8px; cursor: zoom-in; }
+.room-photo-zoom { position: absolute; right: 3px; bottom: 3px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; background: var(--panel-dark); color: var(--gold); pointer-events: none; }
+.room-photo-preview { display: none; position: absolute; z-index: 4; left: calc(100% + 10px); top: 50%; width: min(185px, 38vw); transform: translateY(-50%); pointer-events: none; border: 1px solid var(--gold-line); border-radius: 8px; padding: 5px; background: var(--panel-dark); box-shadow: 0 8px 26px #000b; }
+.room-photo-preview img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 4px; }
+@media (hover: hover) and (pointer: fine) {
+  .room-photo-trigger:hover + .room-photo-preview { display: block; }
+}
 .host-tag { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--gold); background: var(--gold-soft); border-radius: 5px; padding: 3px 5px; }
 .bot-tag { color: var(--muted); background: var(--panel-raised); }
 .field-note { color: var(--muted); font-size: 12px; margin-top: 7px; }
@@ -370,6 +386,7 @@ input::placeholder { color: var(--muted); opacity: 1; }
 .image-modal .modal-heading { margin: 0 0 8px; padding-left: 4px; }
 .image-modal h2 { font-size: 16px; }
 .image-modal img { display: block; width: 100%; height: auto; max-height: calc(100dvh - 135px); min-height: 0; object-fit: contain; border-radius: 5px; background: #101010; }
+.room-photo-modal { width: min(380px, calc(100% - 26px)); }
 .image-modal p { margin: 7px 4px 2px; color: var(--muted); font-size: 12px; }
 .modal-form { display: grid; gap: 12px; margin-top: 12px; }
 .personality-modal { width: min(660px, calc(100% - 30px)); }

@@ -38,20 +38,33 @@ export function PlayerAvatar({ player }) {
   </span>
 }
 
-function colorBackdrop(hex) {
+function luminance(hex) {
   const [red, green, blue] = hex.slice(1).match(/../g).map((part) => {
     const channel = Number.parseInt(part, 16) / 255
     return channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4
   })
-  const luminance = .2126 * red + .7152 * green + .0722 * blue
-  if (luminance < .18) return '#fff'
-  if (luminance < .29) return '#000'
+  return .2126 * red + .7152 * green + .0722 * blue
+}
+
+function colorBackdrop(hex) {
+  const light = luminance(hex)
+  if (light < .18) return '#fff'
+  if (light < .29) return '#000'
 }
 
 export function PlayerName({ player }) {
   const custom = isCustomNameColor(player.nameColor)
-  const color = custom ? player.nameColor : nameColors.find(({ id }) => id === player.nameColor)?.hex
-  const backgroundColor = custom ? colorBackdrop(color) : undefined
+  let color = custom ? player.nameColor : nameColors.find(({ id }) => id === player.nameColor)?.hex
+  const hasBackground = isCustomNameColor(player.nameBackground)
+  const backgroundColor = hasBackground ? player.nameBackground : custom ? colorBackdrop(color) : undefined
+  if (hasBackground) {
+    color ??= nameColors[0].hex
+    const backgroundLight = luminance(backgroundColor)
+    const textLight = luminance(color)
+    if ((Math.max(backgroundLight, textLight) + .05) / (Math.min(backgroundLight, textLight) + .05) < 4.5) {
+      color = backgroundLight > .179 ? '#000' : '#fff'
+    }
+  }
   return <span className={backgroundColor ? 'player-name player-name-backed' : 'player-name'} style={color ? { color, backgroundColor } : undefined}>{player.name}</span>
 }
 
@@ -112,6 +125,16 @@ export function ProfileAppearance({ profile, setProfile, photoBusy, setPhotoBusy
           <span>Couleur personnalisée</span>
           <input type="color" value={pickerColor} onChange={(event) => change({ nameColor: event.target.value })} />
         </label>
+      </fieldset>
+      <fieldset>
+        <legend className="field-label">Bande de couleur derrière le pseudo</legend>
+        <label className="custom-name-color" data-selected={Boolean(profile.nameBackground)}>
+          <span>Couleur du fond</span>
+          <input type="color" value={profile.nameBackground ?? '#ffd200'} onChange={(event) => change({ nameBackground: event.target.value })} />
+        </label>
+        <button className="button secondary small name-background-toggle" type="button" onClick={() => change({ nameBackground: profile.nameBackground ? undefined : '#ffd200' })}>
+          {profile.nameBackground ? 'Retirer le fond' : 'Ajouter le fond'}
+        </button>
       </fieldset>
     </div>
   </details>

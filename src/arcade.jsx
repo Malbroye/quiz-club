@@ -13,7 +13,7 @@ const keyDirections = {
   ArrowRight: [1, 0], d: [1, 0],
 }
 
-function headSource(player) {
+export function headSource(player) {
   const name = player.name.toLowerCase()
   return player.photo || (headNames.some((head) => head.toLowerCase() === name) ? `/${name}.png` : undefined)
 }

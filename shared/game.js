@@ -119,21 +119,26 @@ function resetPlayer(player, settings) {
   })
 }
 
-export function addPlayer(room, profile, id = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join(''), bot = false) {
-  if (room.phase !== 'lobby') throw new Error('Cette partie a déjà commencé.')
-  const name = typeof profile?.name === 'string' ? profile.name.trim().replace(/\s+/g, ' ').slice(0, 20) : ''
-  if (!name) throw new Error('Choisis un pseudo pour entrer.')
-  if (room.players.size >= (room.arcade ? arcadeLimit : 24)) throw new Error('Ce salon est complet.')
-  if ([...room.players.values()].some((player) => player.name.toLowerCase() === name.toLowerCase())) {
+function validatePlayerName(room, value, exceptId) {
+  const name = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 20) : ''
+  if (!name) throw new Error('Choisis un pseudo.')
+  if ([...room.players.values()].some((player) => player.id !== exceptId && player.name.toLowerCase() === name.toLowerCase())) {
     throw new Error('Ce pseudo est déjà pris dans le salon.')
   }
+  return name
+}
+
+export function addPlayer(room, profile, id = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join(''), bot = false) {
+  if (room.phase !== 'lobby') throw new Error('Cette partie a déjà commencé.')
+  if (room.players.size >= (room.arcade ? arcadeLimit : 24)) throw new Error('Ce salon est complet.')
   const player = {
-    id, name, connected: true, bot,
+    id, name: validatePlayerName(room, profile?.name), connected: true, bot,
     avatar: avatars.includes(profile.avatar) ? profile.avatar : avatars[0],
     photo: isAvatarPhoto(profile.photo) ? profile.photo : undefined,
     nameColor: isCustomNameColor(profile.nameColor)
       ? profile.nameColor.toLowerCase()
       : nameColors.find(({ id }) => id === profile.nameColor)?.id,
+    nameBackground: isCustomNameColor(profile.nameBackground) ? profile.nameBackground.toLowerCase() : undefined,
   }
   resetPlayer(player, room.settings)
   room.players.set(id, player)
@@ -350,8 +355,16 @@ export function act(room, id, action, now = Date.now()) {
   const player = room.players.get(id)
   if (!player?.connected) throw new Error('Reconnecte-toi au salon.')
   const type = action?.type
-  if (['settings', 'start', 'next', 'rematch', 'finish-personality', 'group-home', 'prepare'].includes(type) && id !== room.hostId) {
+  if (['settings', 'start', 'next', 'rematch', 'finish-personality', 'group-home', 'prepare', 'rename-player'].includes(type) && id !== room.hostId) {
     throw new Error('Cette action est réservée à l’hôte.')
+  }
+  if (type === 'rename-player') {
+    if (room.local || room.phase !== 'lobby') throw new Error('Les pseudos se modifient dans le salon d’attente.')
+    const target = room.players.get(action.playerId)
+    if (!target?.connected || target.bot) throw new Error('Ce joueur n’est plus disponible.')
+    target.name = validatePlayerName(room, action.name, target.id)
+    room.touched = now
+    return
   }
   if (type === 'group-home' && !room.local) {
     Object.assign(room, { phase: 'lobby', groupHome: true, round: null, index: -1, deck: [], ranking: [], touched: now })
@@ -466,7 +479,9 @@ export function view(room, id, now = Date.now()) {
   const self = room.players.get(id)
   const revealed = phase === 'reveal' || phase === 'final'
   const votes = revealed ? tally(room) : null
-  const publicPlayer = ({ id, name, avatar, photo, nameColor, connected, bot }) => ({ id, name, avatar, photo, nameColor, connected, bot })
+  const publicPlayer = ({ id, name, avatar, photo, nameColor, nameBackground, connected, bot }) => ({
+    id, name, avatar, photo, nameColor, nameBackground, connected, bot,
+  })
   return {
     code: room.code, phase, local: room.local, hostId: room.hostId, selfId: id, groupHome: room.groupHome,
     now, settings: room.settings, index: room.index, questionCounts,
