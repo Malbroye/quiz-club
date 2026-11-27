@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import '@fontsource-variable/geist'
 import { act, avatars, counts, createRoom, defaultSettings, durations, jokerFitsQuestion, jokers, maxSpeedBonus, mergeQuestionHistory, normalizeRoomCode, questionCounts, questionPool, revealDuration, roomCodeLength, tick, view } from '../shared/game.js'
-import { categories, homeThemes, illustratedCategory, themeOptions } from '../shared/questions.js'
+import { categories, homeThemes, illustratedCategory, imageCatalog, themeOptions } from '../shared/questions.js'
 import { getPersonalityQuestion } from '../shared/personality.js'
 import { chatHistoryLimit } from '../shared/lobby-chat.js'
 import { arcadeLimit } from '../shared/arcade.js'
@@ -349,6 +349,53 @@ function HomeStickers({ paused }) {
   </div>
 }
 
+function HomeEgg() {
+  const portrait = imageCatalog['timothee-chalamet']
+  const soundSrc = location.protocol === 'file:' ? './chalamet.mp3' : '/chalamet.mp3'
+  const [open, setOpen] = useState(false)
+  const [portraitSrc, setPortraitSrc] = useState(null)
+  const taps = useRef({ count: 0, last: 0 })
+  const sound = useRef(null)
+
+  useEffect(() => {
+    const paths = [...localMediaPaths(portrait.file), portrait.url]
+    const preload = new window.Image()
+    function loadNext() {
+      const next = paths.shift()
+      if (next) preload.src = next
+      else setPortraitSrc('')
+    }
+    preload.onload = () => setPortraitSrc(preload.src)
+    preload.onerror = loadNext
+    loadNext()
+    return () => { preload.onload = preload.onerror = null }
+  }, [portrait])
+
+  useEffect(() => {
+    if (!open || portraitSrc === null) return
+    const audio = sound.current
+    audio.volume = 1
+    audio.currentTime = 0
+    audio.play().catch(() => {})
+    return () => audio.pause()
+  }, [open, portraitSrc])
+
+  function crackEgg() {
+    const now = performance.now()
+    const count = now - taps.current.last <= 600 ? taps.current.count + 1 : 1
+    taps.current = { count: count % 4, last: now }
+    if (count === 4) setOpen(true)
+  }
+
+  return <>
+    <audio ref={sound} src={soundSrc} preload="auto" hidden />
+    <button className="home-egg" type="button" aria-label="Œuf" onClick={crackEgg}><span aria-hidden="true">🥚</span></button>
+    {open && <Modal title="Timothée Chalamet" className="home-egg-reveal" close={() => setOpen(false)}>
+      {portraitSrc && <img src={portraitSrc} alt="" />}
+    </Modal>}
+  </>
+}
+
 function useHomeRotation(items, key) {
   const [selection] = useState(() => pickHomeItem(items, stored(key, [], 'localStorage')))
   useEffect(() => { store(key, selection.history, 'localStorage') }, [key, selection])
@@ -364,6 +411,7 @@ function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, 
   useEffect(() => { store('qc-stickers-paused', stickersPaused, 'localStorage') }, [stickersPaused])
   return <main className="home page-width">
     <HomeStickers paused={stickersPaused} />
+    {!stickersPaused && <HomeEgg />}
     <section className="hero" aria-labelledby="home-title">
       <div className="hero-copy">
         <h1 className="display hero-title" id="home-title">{headline[0]} <em>{headline[1]}</em></h1>

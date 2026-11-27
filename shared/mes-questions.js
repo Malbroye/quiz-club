@@ -3,6 +3,13 @@
 
 // Un sujet peut être réutilisé par plusieurs questions.
 export const customMediaLibrary = {
+  'timothee-chalamet': {
+    type: 'image',
+    file: 'cinema/timothee-chalamet/portrait.jpg',
+    url: 'https://upload.wikimedia.org/wikipedia/commons/8/89/Timoth%C3%A9e_Chalamet_2024_%28cropped%29.jpg',
+    source: 'https://commons.wikimedia.org/wiki/File:Timoth%C3%A9e_Chalamet_2024_(cropped).jpg',
+    alt: 'Timothée Chalamet',
+  },
   // 'inception': {
   //   type: 'image',
   //   stage: 'question',

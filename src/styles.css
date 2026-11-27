@@ -52,6 +52,10 @@ fieldset { min-width: 0; }
 .home-sticker { position: absolute; width: calc(var(--size) * var(--sticker-scale)); height: auto; opacity: 0; animation: sticker-inflate ease-in-out infinite; filter: drop-shadow(0 5px 9px #0009); }
 .home-stickers[data-paused="true"] { visibility: hidden; }
 .home-stickers[data-paused="true"] .home-sticker { animation-play-state: paused; }
+.home-egg { position: absolute; z-index: 1; inset: 3px -6px auto auto; width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; opacity: .64; font-size: 24px; touch-action: manipulation; user-select: none; }
+.home-egg span { transform: rotate(17deg); }
+.home-egg:hover, .home-egg:focus-visible { opacity: 1; }
+.home-egg:active span { transform: rotate(-12deg) scale(.8); }
 @keyframes sticker-inflate {
   0%, 46%, 100% { opacity: 0; transform: translate(-50%, -35%) rotate(var(--tilt)) scale(.25); }
   9% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--tilt)) scale(1.14); }
@@ -404,6 +408,12 @@ input::placeholder { color: var(--muted); opacity: 1; }
 .modal-body { padding: 20px; }
 .modal-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .modal-heading h2 { font-size: 25px; }
+.home-egg-reveal { width: min(540px, calc(100% - 24px)); border-color: var(--gold); }
+.home-egg-reveal[open] { animation: home-egg-pop .24s cubic-bezier(.15, .8, .25, 1); }
+.home-egg-reveal .modal-heading { margin-bottom: 12px; }
+.home-egg-reveal img { display: block; width: 100%; max-height: 68dvh; object-fit: cover; object-position: center 32%; border-radius: 6px; }
+@keyframes home-egg-pop { from { transform: scale(.64); } 70% { transform: scale(1.035); } to { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .home-egg-reveal[open] { animation: none; } }
 .image-modal { width: min(1060px, calc(100% - 26px)); }
 .image-modal .modal-body { padding: 10px; }
 .image-modal .modal-heading { margin: 0 0 8px; padding-left: 4px; }
@@ -503,6 +513,7 @@ input::placeholder { color: var(--muted); opacity: 1; }
   .hero { grid-template-columns: minmax(0, 1fr); padding: 29px 0 24px; gap: 18px; }
   .hero-title { font-size: clamp(36px, 8.8vw, 57px); margin-bottom: 12px; }
   .home-stickers { --sticker-scale: .67; opacity: .31; }
+  .home-egg { inset: -4px -9px auto auto; }
   .hero-copy > p { font-size: 15px; margin-bottom: 16px; }
   .illustrated-card { min-height: 113px; max-width: none; margin-top: 16px; padding: 13px; }
   .themes { padding-block: 22px 31px; }
