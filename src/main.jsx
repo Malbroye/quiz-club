@@ -14,6 +14,7 @@ import { arcadeLimit } from '../shared/arcade.js'
 import { ArcadeIntro, ArcadeResults, ArcadeRound, headSource } from './arcade.jsx'
 import { PlayerAvatar, PlayerName, ProfileAppearance } from './profile.jsx'
 import { LobbyChat, RoomChatDock } from './lobby-chat.jsx'
+import { ReadyControl } from './ready.jsx'
 import { PersonalityIntro, PersonalityResults, PersonalityRound, PersonalitySetup } from './personality.jsx'
 import { SpeechSettings, useQuestionSpeech } from './speech.jsx'
 import { heroLines, illustratedCovers, pickHomeItem } from './home-content.js'
@@ -213,7 +214,11 @@ function useGame() {
 
   async function action(input) {
     setError('')
-    const command = input.type === 'start' && !state?.personality && !state?.arcade ? { ...input, history: readHistory() } : input
+    const preparingQuiz = input.type === 'prepare' && !input.personalityTest && !input.arcade
+    const startingQuiz = !state?.personality && !state?.arcade && (
+      input.type === 'start' || (input.type === 'ready' && state?.phase === 'lobby' && state.selfId === state.hostId)
+    )
+    const command = preparingQuiz || startingQuiz ? { ...input, history: readHistory() } : input
     try {
       if (local.current) {
         act(local.current.room, local.current.player.id, command)
@@ -297,7 +302,7 @@ function Logo() {
   return <span className="logo"><span className="logo-mark"><Zap size={20} strokeWidth={3} fill="currentColor" /></span><span className="logo-wordmark"><span>LA BANDE</span>{' '}<span>DE QUIZ</span></span></span>
 }
 
-function Modal({ title, children, close, className = '' }) {
+function Modal({ title, children, close, className = '', closeOnBackdrop = true }) {
   const ref = useRef(null)
   useEffect(() => {
     const dialog = ref.current
@@ -308,7 +313,7 @@ function Modal({ title, children, close, className = '' }) {
     ref.current.close()
     close()
   }
-  return <dialog ref={ref} className={'modal ' + className} aria-label={title} onCancel={(event) => { event.preventDefault(); dismiss() }} onClick={(event) => { if (event.target === event.currentTarget) dismiss() }}>
+  return <dialog ref={ref} className={'modal ' + className} aria-label={title} onCancel={(event) => { event.preventDefault(); dismiss() }} onClick={(event) => { if (closeOnBackdrop && event.target === event.currentTarget) dismiss() }}>
     <div className="modal-body">
       <div className="modal-heading"><h2 className="display">{title}</h2><button type="button" className="icon-button" onClick={dismiss} aria-label="Fermer"><X size={20} /></button></div>
       {children}
@@ -340,12 +345,16 @@ const homeStickers = [
 ]
 
 function HomeStickers({ paused }) {
+  if (paused) return null
   const prefix = location.protocol === 'file:' ? './' : '/'
-  return <div className="home-stickers" data-paused={paused} aria-hidden="true">
-    {homeStickers.map(({ name, x, y, size, tilt, cycle, delay }) => <img
-      key={`${x}-${y}`} className="home-sticker" src={`${prefix}${name}.png`} alt="" decoding="async"
-      style={{ left: `${x}%`, top: `${y}%`, '--size': `${size}px`, '--tilt': `${tilt}deg`, animationDuration: `${cycle}s`, animationDelay: `${delay}s` }}
-    />)}
+  return <div className="home-stickers">
+    <div className="home-sticker-faces" aria-hidden="true">
+      {homeStickers.map(({ name, x, y, size, tilt, cycle, delay }) => <img
+        key={`${x}-${y}`} className="home-sticker" src={`${prefix}${name}.png`} alt="" decoding="async"
+        style={{ left: `${x}%`, top: `${y}%`, '--size': `${size}px`, '--tilt': `${tilt}deg`, animationDuration: `${cycle}s`, animationDelay: `${delay}s` }}
+      />)}
+    </div>
+    <HomeEgg />
   </div>
 }
 
@@ -389,8 +398,8 @@ function HomeEgg() {
 
   return <>
     <audio ref={sound} src={soundSrc} preload="auto" hidden />
-    <button className="home-egg" type="button" aria-label="Œuf" onClick={crackEgg}><span aria-hidden="true">🥚</span></button>
-    {open && <Modal title="Timothée Chalamet" className="home-egg-reveal" close={() => setOpen(false)}>
+    <button className="home-sticker home-egg" type="button" aria-label="Œuf" onClick={crackEgg}><span aria-hidden="true">🥚</span></button>
+    {open && <Modal title="Timothée Chalamet" className="home-egg-reveal" closeOnBackdrop={false} close={() => setOpen(false)}>
       {portraitSrc && <img src={portraitSrc} alt="" />}
     </Modal>}
   </>
@@ -411,7 +420,6 @@ function Home({ game, profile, setProfile, photoBusy, setPhotoBusy, openCreate, 
   useEffect(() => { store('qc-stickers-paused', stickersPaused, 'localStorage') }, [stickersPaused])
   return <main className="home page-width">
     <HomeStickers paused={stickersPaused} />
-    {!stickersPaused && <HomeEgg />}
     <section className="hero" aria-labelledby="home-title">
       <div className="hero-copy">
         <h1 className="display hero-title" id="home-title">{headline[0]} <em>{headline[1]}</em></h1>
@@ -603,7 +611,6 @@ function RoomPlayers({ state, action, reconnecting, loadAvatarPreview }) {
 function Lobby({ state, game }) {
   const { action, error } = game
   const host = state.selfId === state.hostId
-  const canStart = state.players.length >= 2 || (state.local && Boolean(state.personality))
   return <main className="page-width game-page">
     <div className="game-heading"><h1 className="display">{state.local ? 'Partie solo' : 'Salon d’attente'}</h1></div>
     <div className="lobby-grid">
@@ -613,7 +620,8 @@ function Lobby({ state, game }) {
           <RoomInvite code={state.code} />}
         <RoomPlayers state={state} action={action} reconnecting={game.reconnecting} loadAvatarPreview={game.loadAvatarPreview} />
         <ErrorText>{error}</ErrorText>
-        {host ? <><button className="button primary w-full justify-center mt-5" disabled={!canStart} onClick={() => action({ type: 'start' })}><Play size={19} fill="currentColor" /> {state.personality ? 'Lancer le questionnaire' : 'Lancer la partie'}</button>{!canStart && <p className="field-note text-center">Il faut au moins 2 joueurs pour démarrer.</p>}</> : <p className="wait-note"><span /> L’hôte lance la partie.</p>}
+        {state.local ? <button className="button primary w-full justify-center mt-5" onClick={() => action({ type: 'start' })}><Play size={19} fill="currentColor" /> {state.personality ? 'Lancer le questionnaire' : 'Lancer la partie'}</button>
+          : <ReadyControl key={state.ready?.key} ready={state.ready} action={action} reconnecting={game.reconnecting} note={state.players.length < 2 ? 'Il faut au moins 2 joueurs' : 'Départ dès que tout le monde est prêt'} />}
       </section>
       {!state.local && <LobbyChat key={state.code} selfId={state.selfId} players={state.players} messages={game.chat} send={game.sendChat} reconnecting={game.reconnecting} />}
       </div>
@@ -837,7 +845,6 @@ function ResponseScore({ breakdown, speedEnabled, showTotal = false }) {
 
 function Reveal({ state, action, clockOffset, reconnecting, error }) {
   const { result, question, personal } = state
-  const host = state.hostId === state.selfId
   const last = state.index + 1 === state.settings.total
   const { seconds } = useClock({ start: result.nextAt - revealDuration, deadline: result.nextAt }, clockOffset)
   const correct = personal.choices.includes(result.answer)
@@ -879,9 +886,9 @@ function Reveal({ state, action, clockOffset, reconnecting, error }) {
           </>}
         </div>
         <ErrorText>{error}</ErrorText>
-        {host ? <button className="button primary w-full justify-center mb-5" disabled={seconds > 0 || reconnecting} onClick={() => action({ type: 'next', round: state.index })}>
-          {last ? 'Voir le podium' : 'Question suivante'}{seconds > 0 && ` (${seconds} s)`} <ChevronRight size={21} />
-        </button> : <p className="wait-note mb-4"><span /> En attente de l’hôte.</p>}
+        {state.local ? <button className="button primary w-full justify-center mb-5" onClick={() => action({ type: 'next', round: state.index })}>
+          {last ? 'Voir le podium' : 'Question suivante'} <ChevronRight size={21} />
+        </button> : <ReadyControl key={state.ready?.key} ready={state.ready} action={action} reconnecting={reconnecting} note={seconds > 0 ? `Correction visible encore au moins ${seconds} s` : undefined} />}
         <RevealMedia key={question.id} media={question.media} followUp={question.followUp} />
         {question.source && <a className="question-source" href={question.source} target="_blank" rel="noreferrer">Source de la réponse <ArrowUpRight size={13} /></a>}
         <h3 className="field-label">Répartition des votes · {result.voters}</h3><VoteBars percentages={result.percentages} choices={question.choices} correct={result.answer} />

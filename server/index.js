@@ -38,6 +38,12 @@ if (isDevelopment) {
 }
 
 function publish(record, now = Date.now()) {
+  for (const [token, playerId] of record.tokens) {
+    if (!record.room.players.has(playerId)) {
+      record.tokens.delete(token)
+      record.away.delete(playerId)
+    }
+  }
   storage?.save(record)
   for (const [id, socket] of record.sockets) {
     if (socket.connected) socket.emit('state', view(record.room, id, now))
@@ -177,14 +183,6 @@ io?.on('connection', (socket) => {
     }
     const { record, id } = session
     act(record.room, id, input, now)
-    if (input.type === 'start' || input.type === 'rematch') {
-      for (const [token, playerId] of record.tokens) {
-        if (!record.room.players.has(playerId)) {
-          record.tokens.delete(token)
-          record.away.delete(playerId)
-        }
-      }
-    }
     publish(record, now)
   })
 

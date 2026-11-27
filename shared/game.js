@@ -90,7 +90,10 @@ export function questionPool(themes) {
   if (themes.includes(illustratedCategory.id)) {
     return questions.filter(({ media }) => media?.stage === 'question' && (media.type === 'image' || media.type === 'video'))
   }
-  return themes.length ? questions.filter((question) => themes.includes(question.category) || themes.includes(question.screen)) : questions
+  const includesCasting = themes.includes('casting')
+  return themes.length ? questions.filter((question) =>
+    themes.includes(question.category) || themes.includes(question.screen) || (includesCasting && question.casting)
+  ) : questions
 }
 
 export const questionCounts = Object.fromEntries(themeOptions.map(({ id }) => [id, questionPool([id]).length]))
@@ -324,7 +327,46 @@ function finishRound(room, now) {
   room.phase = 'reveal'
 }
 
+function readyGate(room) {
+  if (room.local) return null
+  const version = room.readyVersion ?? 0
+  if (room.phase === 'lobby' && !room.groupHome) {
+    return { key: `start/${version}`, action: { type: 'start' }, minimum: 2 }
+  }
+  if (room.phase === 'reveal') {
+    return { key: `quiz/${version}/${room.index}`, action: { type: 'next', round: room.index }, minimum: 1, opensAt: room.round.nextAt }
+  }
+  if (room.phase === 'personality' && room.personality.revealed) {
+    const { round, run } = room.personality
+    return { key: `personality/${version}/${run}/${round}`, action: { type: 'next', step: round, run }, minimum: 1 }
+  }
+  return null
+}
+
+function resetReady(room) {
+  room.readyVersion = (room.readyVersion ?? 0) + 1
+  room.readiness = undefined
+}
+
+function readyPlayers(room, gate) {
+  const active = [...room.players.values()].filter((player) => player.connected && !player.bot)
+  const votes = room.readiness?.key === gate.key ? room.readiness.votes : {}
+  const isReady = (id) => votes[id] ?? (id === room.hostId)
+  const count = active.filter(({ id }) => isReady(id)).length
+  return { active, isReady, count }
+}
+
+function tickReady(room, now) {
+  const gate = readyGate(room)
+  if (!gate || !room.readiness || now < (gate.opensAt ?? 0)) return false
+  const { active, count } = readyPlayers(room, gate)
+  if (active.length < gate.minimum || count !== active.length) return false
+  act(room, room.hostId, { ...gate.action, history: room.readiness.history }, now)
+  return true
+}
+
 export function tick(room, now = Date.now()) {
+  if (tickReady(room, now)) return true
   if (room.phase === 'personality') return tickPersonality(room)
   if (room.phase !== 'question') return false
   const { entries, question } = room.round
@@ -357,6 +399,18 @@ export function act(room, id, action, now = Date.now()) {
   const player = room.players.get(id)
   if (!player?.connected) throw new Error('Reconnecte-toi au salon.')
   const type = action?.type
+  if (type === 'ready') {
+    const gate = readyGate(room)
+    if (!gate || action.key !== gate.key || typeof action.ready !== 'boolean') throw new Error('Cette étape est déjà terminée.')
+    if (room.readiness?.key !== gate.key) room.readiness = { key: gate.key, votes: {} }
+    room.readiness.votes[id] = action.ready
+    if (action.ready && gate.action.type === 'start' && id === room.hostId) {
+      room.readiness.history = mergeQuestionHistory(action.history, [])
+    }
+    room.touched = now
+    tickReady(room, now)
+    return
+  }
   if (['settings', 'start', 'next', 'rematch', 'finish-personality', 'group-home', 'prepare', 'rename-player'].includes(type) && id !== room.hostId) {
     throw new Error('Cette action est réservée à l’hôte.')
   }
@@ -369,18 +423,21 @@ export function act(room, id, action, now = Date.now()) {
     return
   }
   if (type === 'group-home' && !room.local) {
+    resetReady(room)
     Object.assign(room, { phase: 'lobby', groupHome: true, round: null, index: -1, deck: [], ranking: [], touched: now })
     room.personality = undefined
     room.arcade = undefined
     return
   }
   if (type === 'prepare' && room.groupHome) {
-    const { personalityTest, arcade, theme } = action
+    const { personalityTest, arcade, theme, history } = action
     if (personalityTest !== undefined && !getPersonalityTest(personalityTest)) throw new Error('Ce questionnaire est indisponible.')
     if (arcade === true && personalityTest) throw new Error('Choisis un seul jeu.')
     if (arcade === true && room.players.size > arcadeLimit) throw new Error('L’arcade accueille trois joueurs maximum.')
+    resetReady(room)
     room.personality = personalityTest ? { testId: personalityTest, answers: {}, run: 0 } : undefined
     room.arcade = arcade === true ? {} : undefined
+    if (!room.personality && !room.arcade) room.questionHistory = mergeQuestionHistory(history, room.questionHistory)
     if (theme) room.settings = settingsFrom({ ...room.settings, themes: [theme] })
     room.groupHome = false
     room.touched = now
@@ -389,11 +446,13 @@ export function act(room, id, action, now = Date.now()) {
   if (room.groupHome) throw new Error('Choisis un jeu avant de lancer la partie.')
   if (room.personality) {
     actPersonality(room, id, action)
+    if (type === 'start' || type === 'rematch' || type === 'next') resetReady(room)
     room.touched = now
     return
   }
   if (room.arcade) {
     actArcade(room, action, now)
+    if (type === 'start' || type === 'rematch') resetReady(room)
     room.touched = now
     return
   }
@@ -406,9 +465,11 @@ export function act(room, id, action, now = Date.now()) {
         : [...current.themes.filter((id) => id !== illustratedCategory.id), theme]
       : settings?.themes ?? current.themes
     room.settings = settingsFrom({ ...current, ...settings, themes, jokers: { ...current.jokers, ...settings?.jokers } })
+    resetReady(room)
   } else if (type === 'start' && room.phase === 'lobby') {
     const active = [...room.players.values()].filter((candidate) => candidate.connected)
     if (active.length < 2) throw new Error('Attends qu’un autre joueur rejoigne le salon.')
+    resetReady(room)
     for (const candidate of room.players.values()) {
       if (!candidate.connected) room.players.delete(candidate.id)
       else resetPlayer(candidate, room.settings)
@@ -421,9 +482,11 @@ export function act(room, id, action, now = Date.now()) {
   } else if (type === 'next' && room.phase === 'reveal') {
     if (action.round !== room.index) throw new Error('Cette manche est déjà terminée.')
     if (now < room.round.nextAt) throw new Error('Laisse quelques secondes aux joueurs pour lire les réponses.')
+    resetReady(room)
     if (room.index + 1 === room.deck.length) room.phase = 'final'
     else openRound(room, now)
   } else if (type === 'rematch' && room.phase === 'final') {
+    resetReady(room)
     room.phase = 'lobby'
     room.round = null
     room.index = -1
@@ -481,12 +544,15 @@ export function view(room, id, now = Date.now()) {
   const self = room.players.get(id)
   const revealed = phase === 'reveal' || phase === 'final'
   const votes = revealed ? tally(room) : null
+  const gate = readyGate(room)
+  const readiness = gate && readyPlayers(room, gate)
   const publicPlayer = ({ id, name, avatar, photo, photoPreview, nameColor, nameBackground, connected, bot }) => ({
     id, name, avatar, photo, hasPhotoPreview: Boolean(photoPreview), nameColor, nameBackground, connected, bot,
   })
   return {
     code: room.code, phase, local: room.local, hostId: room.hostId, selfId: id, groupHome: room.groupHome,
     now, settings: room.settings, index: room.index, questionCounts,
+    ready: readiness && { key: gate.key, selected: readiness.isReady(id), count: readiness.count, total: readiness.active.length },
     personality: room.personality && personalityView(room, id),
     arcade: room.arcade && { frame: arcadeFrame(room, now) },
     players: [...room.players.values()].filter((player) => phase !== 'lobby' || player.connected).map(publicPlayer),

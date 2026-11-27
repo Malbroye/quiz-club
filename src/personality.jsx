@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, BarChart3, Check, HeartHandshake, Sparkles, Square, Users, Volume2 } from 'lucide-react'
 import { getPersonalityQuestion, getPersonalityTest, personalityTests } from '../shared/personality.js'
 import { PlayerAvatar, PlayerName } from './profile.jsx'
+import { ReadyControl } from './ready.jsx'
 
 const letters = 'ABCD'
 
@@ -83,9 +84,7 @@ export function PersonalityRound({ state, action, error, reconnecting, speech })
     {revealing ? <section className="panel personality-reveal">
       <h1 className="display" ref={heading} tabIndex={-1}>Les réponses du groupe</h1>
       <PersonalityPoll question={question} step={step} votes={currentVotes} players={state.players} selfId={state.selfId} />
-      {state.selfId === state.hostId
-        ? <button className="button primary" type="button" disabled={reconnecting} onClick={() => action({ type: 'next', step, run })}>{step + 1 === total ? 'Voir les profils' : 'Question suivante'} <ArrowRight size={17} /></button>
-        : <p className="wait-note"><span /> En attente de l’hôte.</p>}
+      <ReadyControl key={state.ready?.key} ready={state.ready} action={action} reconnecting={reconnecting} />
     </section> : question ? <>
       <div className="question-panel"><div className="question-heading">
         <h1 ref={heading} tabIndex={-1}>{question[0]}</h1>

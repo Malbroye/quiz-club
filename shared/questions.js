@@ -4,6 +4,7 @@ import questionPacks, { expansionPacks, subjectPacks, supplementPacks } from './
 import { trueFalseQuestions } from './banque/vrai-faux.js'
 import { expansionImages } from './banque/extension/images.js'
 import { mediaQuestions, questionVideos } from './banque/media-questions.js'
+import { castingQuestionIds } from './banque/cinema/casting.js'
 
 export const categories = [
   { id: 'culture', name: 'Culture générale', icon: 'brain' },
@@ -17,9 +18,10 @@ export const categories = [
 ]
 
 export const illustratedCategory = { id: 'illustrated', name: 'Illustré', icon: 'image' }
-const screenThemes = [
+export const screenThemes = [
   { id: 'films', name: 'Cinéma', icon: 'film' },
   { id: 'series', name: 'Séries', icon: 'tv' },
+  { id: 'casting', name: 'Devine l’acteur ou l’actrice', icon: 'film' },
 ]
 export const homeThemes = [...categories, ...screenThemes]
 export const themeOptions = [...homeThemes, illustratedCategory]
@@ -160,10 +162,12 @@ function resolveMedia(value) {
 
 export const questions = [...builtInQuestions, ...packQuestions, ...mediaQuestions, ...customQuestions, ...extraQuestions, ...trueFalseQuestions].map((question) => {
   const media = customMedia[question.id] ?? question.media
-  const isSeries = question.screen === 'series' || seriesQuestionIds.has(question.id) || question.id.startsWith('cinema-stranger-things-pack-')
+  const isCastingPack = question.id.startsWith('cinema-casting-pack-')
+  const isSeries = isCastingPack || question.screen === 'series' || seriesQuestionIds.has(question.id) || question.id.startsWith('cinema-stranger-things-pack-')
   return {
     ...question,
     screen: question.category === 'cinema' ? (isSeries ? 'series' : 'films') : undefined,
+    casting: isCastingPack || castingQuestionIds.has(question.id),
     media: resolveMedia(media),
     followUp: question.followUp ?? questionVideos[question.id],
   }

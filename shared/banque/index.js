@@ -1,6 +1,7 @@
 import animals from './animals.js'
 import cinema from './cinema/index.js'
 import strangerThings from './cinema/stranger-things.js'
+import casting from './cinema/casting.js'
 import culture from './culture.js'
 import games from './games.js'
 import memes from './memes.js'
@@ -27,6 +28,7 @@ import extraYouTube from './supplement/youtube.js'
 export default { animals, cinema, culture, games, memes, sports, twitch, youtube }
 export const subjectPacks = [
   { category: 'cinema', subject: 'stranger-things', rows: strangerThings },
+  { category: 'cinema', subject: 'casting', rows: casting },
 ]
 
 export const expansionPacks = {
